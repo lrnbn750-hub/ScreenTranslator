@@ -8,68 +8,88 @@ import java.io.StringWriter;
 
 public final class ErrorLogger {
 
-    private static final String PREFS = "error_log";
-    private static final String KEY_ERROR = "last_error";
+    private static final String PREFS_NAME = "translator_errors";
+    private static final String ERROR_KEY = "last_error";
 
     private ErrorLogger() {
     }
 
     public static void save(
             Context context,
-            Throwable error
+            Throwable throwable
     ) {
 
         try {
 
-            StringWriter writer =
+            StringWriter stringWriter =
                     new StringWriter();
 
             PrintWriter printWriter =
-                    new PrintWriter(writer);
+                    new PrintWriter(stringWriter);
 
-            error.printStackTrace(printWriter);
+            throwable.printStackTrace(printWriter);
 
             printWriter.flush();
 
+            String error =
+                    stringWriter.toString();
+
             SharedPreferences preferences =
                     context.getSharedPreferences(
-                            PREFS,
+                            PREFS_NAME,
                             Context.MODE_PRIVATE
                     );
 
+            // commit مهم هنا لأنه يحفظ الخطأ فورًا
             preferences.edit()
                     .putString(
-                            KEY_ERROR,
-                            writer.toString()
+                            ERROR_KEY,
+                            error
                     )
-                    .apply();
+                    .commit();
 
         } catch (Exception ignored) {
         }
     }
 
-    public static String get(Context context) {
+    public static String get(
+            Context context
+    ) {
 
-        SharedPreferences preferences =
-                context.getSharedPreferences(
-                        PREFS,
-                        Context.MODE_PRIVATE
-                );
+        try {
 
-        return preferences.getString(
-                KEY_ERROR,
-                ""
-        );
+            SharedPreferences preferences =
+                    context.getSharedPreferences(
+                            PREFS_NAME,
+                            Context.MODE_PRIVATE
+                    );
+
+            return preferences.getString(
+                    ERROR_KEY,
+                    ""
+            );
+
+        } catch (Exception ignored) {
+
+            return "";
+        }
     }
 
-    public static void clear(Context context) {
+    public static void clear(
+            Context context
+    ) {
 
-        context.getSharedPreferences(
-                PREFS,
-                Context.MODE_PRIVATE
-        )
-                .edit()
-                .remove(KEY_ERROR)
-                .apply();
+        try {
+
+            context.getSharedPreferences(
+                    PREFS_NAME,
+                    Context.MODE_PRIVATE
+            )
+                    .edit()
+                    .remove(ERROR_KEY)
+                    .commit();
+
+        } catch (Exception ignored) {
+        }
     }
 }
