@@ -15,7 +15,9 @@ import android.media.ImageReader;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -34,13 +36,22 @@ import java.nio.ByteBuffer;
 
 public class ScreenCaptureService extends Service {
 
-    public static final String EXTRA_RESULT_CODE = "result_code";
-    public static final String EXTRA_RESULT_DATA = "result_data";
+    public static final String EXTRA_RESULT_CODE =
+            "result_code";
+
+    public static final String EXTRA_RESULT_DATA =
+            "result_data";
 
     private static final String CHANNEL_ID =
             "screen_translator";
 
     private static final int NOTIFICATION_ID = 77;
+
+    /*
+     * كل كم ملي ثانية نفحص منطقة الترجمة.
+     * 800ms مناسب للفيديو بدون ضغط كبير على الجهاز.
+     */
+    private static final long AUTO_TRANSLATE_INTERVAL = 800;
 
     private WindowManager windowManager;
 
@@ -60,6 +71,53 @@ public class ScreenCaptureService extends Service {
     private int screenWidth;
     private int screenHeight;
     private int screenDensity;
+
+    /*
+     * منطقة الترجمة المحفوظة.
+     */
+    private int selectedLeft;
+    private int selectedTop;
+    private int selectedRight;
+    private int selectedBottom;
+
+    private boolean autoTranslationEnabled = false;
+
+    /*
+     * يمنع تشغيل OCR عدة مرات بنفس الوقت.
+     */
+    private boolean ocrRunning = false;
+
+    /*
+     * آخر نص تم التعرف عليه.
+     */
+    private String lastDetectedText = "";
+
+    /*
+     * آخر نص تمت ترجمته.
+     */
+    private String lastTranslatedText = "";
+
+    private final Handler autoHandler =
+            new Handler(Looper.getMainLooper());
+
+    private final Runnable autoTranslationRunnable =
+            new Runnable() {
+
+                @Override
+                public void run() {
+
+                    if (!autoTranslationEnabled) {
+                        return;
+                    }
+
+                    scanSelectedArea();
+
+                    autoHandler.postDelayed(
+                            this,
+                            AUTO_TRANSLATE_INTERVAL
+                    );
+                }
+            };
 
     private final MediaProjection.Callback
             projectionCallback =
@@ -117,7 +175,9 @@ public class ScreenCaptureService extends Service {
                             .build();
 
             translator =
-                    Translation.getClient(options);
+                    Translation.getClient(
+                            options
+                    );
 
             createNotificationChannel();
 
@@ -255,8 +315,8 @@ public class ScreenCaptureService extends Service {
         }
 
         /*
-         * مهم جدًا:
-         * يجب تسجيل Callback قبل createVirtualDisplay().
+         * مهم:
+         * Callback قبل createVirtualDisplay.
          */
         mediaProjection.registerCallback(
                 projectionCallback,
@@ -276,9 +336,6 @@ public class ScreenCaptureService extends Service {
                 null
         );
 
-        /*
-         * بعد تسجيل Callback نبدأ التقاط الشاشة.
-         */
         virtualDisplay =
                 mediaProjection.createVirtualDisplay(
                         "ScreenTranslator",
@@ -464,6 +521,12 @@ public class ScreenCaptureService extends Service {
 
     private void showSelection() {
 
+        /*
+         * إذا الترجمة التلقائية تعمل وضغط المستخدم 文،
+         * نوقفها مؤقتًا ونسمح له باختيار منطقة جديدة.
+         */
+        stopAutoTranslation();
+
         if (selectionView != null) {
             return;
         }
@@ -482,12 +545,18 @@ public class ScreenCaptureService extends Service {
                                     !latestBitmap
                                             .isRecycled()) {
 
-                                translateArea(
-                                        left,
-                                        top,
-                                        right,
-                                        bottom
-                                );
+                                /*
+                                 * حفظ المنطقة.
+                                 */
+                                selectedLeft = left;
+                                selectedTop = top;
+                                selectedRight = right;
+                                selectedBottom = bottom;
+
+                                /*
+                                 * نبدأ الترجمة التلقائية.
+                                 */
+                                startAutoTranslation();
 
                             } else {
 
@@ -554,14 +623,94 @@ public class ScreenCaptureService extends Service {
         selectionView = null;
     }
 
+    /*
+     * تشغيل الترجمة التلقائية للمنطقة المحددة.
+     */
+    private void startAutoTranslation() {
+
+        autoTranslationEnabled = true;
+
+        ocrRunning = false;
+
+        lastDetectedText = "";
+
+        lastTranslatedText = "";
+
+        autoHandler.removeCallbacks(
+                autoTranslationRunnable
+        );
+
+        /*
+         * نفحص مباشرة.
+         */
+        autoHandler.post(
+                autoTranslationRunnable
+        );
+    }
+
+    /*
+     * إيقاف الترجمة التلقائية.
+     */
+    private void stopAutoTranslation() {
+
+        autoTranslationEnabled = false;
+
+        autoHandler.removeCallbacks(
+                autoTranslationRunnable
+        );
+
+        ocrRunning = false;
+    }
+
+    /*
+     * يفحص المنطقة المحفوظة.
+     */
+    private void scanSelectedArea() {
+
+        if (!autoTranslationEnabled) {
+            return;
+        }
+
+        if (ocrRunning) {
+            return;
+        }
+
+        if (latestBitmap == null ||
+                latestBitmap.isRecycled()) {
+            return;
+        }
+
+        ocrRunning = true;
+
+        translateArea(
+                selectedLeft,
+                selectedTop,
+                selectedRight,
+                selectedBottom,
+                true
+        );
+    }
+
+    /*
+     * الترجمة اليدوية/التلقائية.
+     */
     private void translateArea(
             int left,
             int top,
             int right,
-            int bottom
+            int bottom,
+            boolean automatic
     ) {
 
         try {
+
+            if (latestBitmap == null ||
+                    latestBitmap.isRecycled()) {
+
+                ocrRunning = false;
+
+                return;
+            }
 
             int safeLeft =
                     Math.max(
@@ -608,9 +757,41 @@ public class ScreenCaptureService extends Service {
                             safeBottom - safeTop
                     );
 
+            /*
+             * تكبير المنطقة حتى يساعد OCR
+             * مع النصوص الصغيرة داخل الفيديو.
+             */
+            int enlargedWidth =
+                    Math.min(
+                            1600,
+                            Math.max(
+                                    1,
+                                    crop.getWidth() * 2
+                            )
+                    );
+
+            int enlargedHeight =
+                    Math.min(
+                            1600,
+                            Math.max(
+                                    1,
+                                    crop.getHeight() * 2
+                            )
+                    );
+
+            Bitmap enlarged =
+                    Bitmap.createScaledBitmap(
+                            crop,
+                            enlargedWidth,
+                            enlargedHeight,
+                            true
+                    );
+
+            crop.recycle();
+
             InputImage input =
                     InputImage.fromBitmap(
-                            crop,
+                            enlarged,
                             0
                     );
 
@@ -624,53 +805,84 @@ public class ScreenCaptureService extends Service {
                                                 .getText()
                                                 .trim();
 
-                                crop.recycle();
+                                enlarged.recycle();
+
+                                ocrRunning = false;
 
                                 if (text.isEmpty()) {
+                                    return;
+                                }
 
-                                    showTranslation(
-                                            "لم يتم العثور على نص إنجليزي"
-                                    );
+                                /*
+                                 * تنظيف الفراغات حتى لا يعتبر
+                                 * نفس الجملة مختلفة بسبب OCR.
+                                 */
+                                String normalized =
+                                        normalizeText(text);
+
+                                if (normalized.isEmpty()) {
+                                    return;
+                                }
+
+                                /*
+                                 * إذا النص نفسه لم يتغير،
+                                 * لا نعيد الترجمة.
+                                 */
+                                if (normalized.equals(
+                                        lastDetectedText
+                                )) {
 
                                     return;
                                 }
 
+                                lastDetectedText =
+                                        normalized;
+
                                 translateText(
                                         text,
-                                        safeLeft,
-                                        safeTop,
-                                        safeRight,
-                                        safeBottom
+                                        left,
+                                        top,
+                                        right,
+                                        bottom
                                 );
                             }
                     )
                     .addOnFailureListener(
                             error -> {
 
-                                crop.recycle();
+                                enlarged.recycle();
+
+                                ocrRunning = false;
 
                                 ErrorLogger.save(
                                         getApplicationContext(),
                                         error
-                                );
-
-                                showTranslation(
-                                        "تعذر قراءة النص"
                                 );
                             }
                     );
 
         } catch (Throwable error) {
 
+            ocrRunning = false;
+
             ErrorLogger.save(
                     getApplicationContext(),
                     error
             );
-
-            showTranslation(
-                    "حدث خطأ أثناء قراءة الشاشة"
-            );
         }
+    }
+
+    private String normalizeText(
+            String text
+    ) {
+
+        return text
+                .replaceAll(
+                        "\\s+",
+                        " "
+                )
+                .trim()
+                .toLowerCase();
     }
 
     private void translateText(
@@ -697,6 +909,25 @@ public class ScreenCaptureService extends Service {
                                     .addOnSuccessListener(
                                             translated -> {
 
+                                                if (!autoTranslationEnabled) {
+                                                    return;
+                                                }
+
+                                                String normalized =
+                                                        normalizeText(
+                                                                text
+                                                        );
+
+                                                if (normalized.equals(
+                                                        lastTranslatedText
+                                                )) {
+
+                                                    return;
+                                                }
+
+                                                lastTranslatedText =
+                                                        normalized;
+
                                                 showTranslationAt(
                                                         translated,
                                                         left,
@@ -709,13 +940,11 @@ public class ScreenCaptureService extends Service {
                                     .addOnFailureListener(
                                             error -> {
 
+                                                ocrRunning = false;
+
                                                 ErrorLogger.save(
                                                         getApplicationContext(),
                                                         error
-                                                );
-
-                                                showTranslation(
-                                                        "تعذر الترجمة"
                                                 );
                                             }
                                     );
@@ -724,13 +953,11 @@ public class ScreenCaptureService extends Service {
                 .addOnFailureListener(
                         error -> {
 
+                            ocrRunning = false;
+
                             ErrorLogger.save(
                                     getApplicationContext(),
                                     error
-                            );
-
-                            showTranslation(
-                                    "تعذر تنزيل نموذج اللغة"
                             );
                         }
                 );
@@ -880,6 +1107,8 @@ public class ScreenCaptureService extends Service {
 
     private void stopScreenCapture() {
 
+        stopAutoTranslation();
+
         removeSelection();
         removeTranslation();
 
@@ -900,12 +1129,14 @@ public class ScreenCaptureService extends Service {
         if (virtualDisplay != null) {
 
             virtualDisplay.release();
+
             virtualDisplay = null;
         }
 
         if (imageReader != null) {
 
             imageReader.close();
+
             imageReader = null;
         }
 
@@ -913,6 +1144,7 @@ public class ScreenCaptureService extends Service {
                 !latestBitmap.isRecycled()) {
 
             latestBitmap.recycle();
+
             latestBitmap = null;
         }
 
@@ -928,6 +1160,7 @@ public class ScreenCaptureService extends Service {
             }
 
             mediaProjection.stop();
+
             mediaProjection = null;
         }
     }
@@ -955,4 +1188,4 @@ public class ScreenCaptureService extends Service {
 
         return null;
     }
-    }
+                            }
