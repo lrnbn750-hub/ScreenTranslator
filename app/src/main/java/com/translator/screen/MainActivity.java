@@ -17,6 +17,7 @@ public class MainActivity extends Activity {
     private TextView errorText;
     private Button startButton;
     private Button errorButton;
+    private Button clearErrorButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,46 +25,59 @@ public class MainActivity extends Activity {
 
         installCrashHandler();
 
-        setContentView(R.layout.activity_main);
+        setContentView(
+                R.layout.activity_main
+        );
 
         statusText =
-                findViewById(R.id.statusText);
+                findViewById(
+                        R.id.statusText
+                );
 
         startButton =
-                findViewById(R.id.startButton);
+                findViewById(
+                        R.id.startButton
+                );
 
         errorText =
-                findViewById(R.id.errorText);
+                findViewById(
+                        R.id.errorText
+                );
 
         errorButton =
-                findViewById(R.id.errorButton);
+                findViewById(
+                        R.id.errorButton
+                );
+
+        clearErrorButton =
+                findViewById(
+                        R.id.clearErrorButton
+                );
 
         showSavedError();
 
         startButton.setOnClickListener(
-                v -> startTranslator()
+                view -> startTranslator()
         );
 
         errorButton.setOnClickListener(
-                v -> {
+                view -> showSavedError()
+        );
 
-                    String error =
-                            ErrorLogger.get(this);
+        clearErrorButton.setOnClickListener(
+                view -> {
 
-                    if (error.isEmpty()) {
+                    ErrorLogger.clear(
+                            this
+                    );
 
-                        errorText.setText(
-                                "لا توجد أخطاء محفوظة."
-                        );
+                    errorText.setText(
+                            "لا توجد أخطاء محفوظة."
+                    );
 
-                    } else {
-
-                        errorText.setVisibility(
-                                View.VISIBLE
-                        );
-
-                        errorText.setText(error);
-                    }
+                    errorText.setVisibility(
+                            View.VISIBLE
+                    );
                 }
         );
     }
@@ -82,8 +96,6 @@ public class MainActivity extends Activity {
                             .killProcess(
                                     android.os.Process.myPid()
                             );
-
-                    System.exit(10);
                 }
         );
     }
@@ -93,10 +105,15 @@ public class MainActivity extends Activity {
         String error =
                 ErrorLogger.get(this);
 
-        if (error.isEmpty()) {
+        if (error == null ||
+                error.trim().isEmpty()) {
+
+            errorText.setText(
+                    "لا توجد أخطاء محفوظة."
+            );
 
             errorText.setVisibility(
-                    View.GONE
+                    View.VISIBLE
             );
 
             return;
@@ -107,7 +124,7 @@ public class MainActivity extends Activity {
         );
 
         errorText.setText(
-                "آخر خطأ محفوظ:\n\n" +
+                "آخر خطأ:\n\n" +
                         error
         );
 
@@ -118,48 +135,72 @@ public class MainActivity extends Activity {
 
     private void startTranslator() {
 
-        if (!Settings.canDrawOverlays(this)) {
+        try {
 
-            statusText.setText(
-                    "اسمح للتطبيق بالظهور فوق التطبيقات"
+            if (!Settings.canDrawOverlays(this)) {
+
+                statusText.setText(
+                        "اسمح للتطبيق بالظهور فوق التطبيقات"
+                );
+
+                Intent intent =
+                        new Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse(
+                                        "package:" +
+                                                getPackageName()
+                                )
+                        );
+
+                startActivity(intent);
+
+                return;
+            }
+
+            requestScreenCapture();
+
+        } catch (Throwable error) {
+
+            ErrorLogger.save(
+                    this,
+                    error
             );
 
-            Intent intent =
-                    new Intent(
-                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse(
-                                    "package:" +
-                                            getPackageName()
-                            )
-                    );
-
-            startActivity(intent);
-
-            return;
+            showSavedError();
         }
-
-        requestScreenCapture();
     }
 
     private void requestScreenCapture() {
 
-        statusText.setText(
-                "اختر السماح بالتقاط الشاشة..."
-        );
+        try {
 
-        android.media.projection.MediaProjectionManager manager =
-                (android.media.projection.MediaProjectionManager)
-                        getSystemService(
-                                MEDIA_PROJECTION_SERVICE
-                        );
+            statusText.setText(
+                    "اختر السماح بالتقاط الشاشة..."
+            );
 
-        Intent captureIntent =
-                manager.createScreenCaptureIntent();
+            android.media.projection.MediaProjectionManager manager =
+                    (android.media.projection.MediaProjectionManager)
+                            getSystemService(
+                                    MEDIA_PROJECTION_SERVICE
+                            );
 
-        startActivityForResult(
-                captureIntent,
-                SCREEN_CAPTURE_REQUEST
-        );
+            Intent captureIntent =
+                    manager.createScreenCaptureIntent();
+
+            startActivityForResult(
+                    captureIntent,
+                    SCREEN_CAPTURE_REQUEST
+            );
+
+        } catch (Throwable error) {
+
+            ErrorLogger.save(
+                    this,
+                    error
+            );
+
+            showSavedError();
+        }
     }
 
     @Override
@@ -175,7 +216,9 @@ public class MainActivity extends Activity {
                 data
         );
 
-        if (requestCode != SCREEN_CAPTURE_REQUEST) {
+        if (requestCode !=
+                SCREEN_CAPTURE_REQUEST) {
+
             return;
         }
 
@@ -235,9 +278,7 @@ public class MainActivity extends Activity {
                     error
             );
 
-            statusText.setText(
-                    "حدث خطأ. افتح سجل الأخطاء."
-            );
+            showSavedError();
         }
     }
 }
