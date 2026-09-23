@@ -50,7 +50,7 @@
                 android:id="@+id/statusText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="جاري تجهيز التطبيق..."
+                android:text="جاهز للترجمة"
                 android:textColor="#6B7280"
                 android:textSize="15sp"
                 android:layout_marginTop="12dp"/>
@@ -121,6 +121,26 @@
             android:textColor="#FFFFFF"
             android:backgroundTint="#2563EB"
             android:layout_marginTop="28dp"/>
+
+        <Button
+            android:id="@+id/errorButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="سجل الأخطاء"
+            android:textSize="15sp"
+            android:layout_marginTop="12dp"/>
+
+        <TextView
+            android:id="@+id/errorText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#B91C1C"
+            android:textSize="12sp"
+            android:background="#FFF1F2"
+            android:padding="14dp"
+            android:layout_marginTop="12dp"
+            android:textIsSelectable="true"
+            android:visibility="gone"/>
 
     </LinearLayout>
 
