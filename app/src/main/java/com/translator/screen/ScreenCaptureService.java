@@ -53,8 +53,8 @@ public class ScreenCaptureService extends Service {
     private SelectionOverlayView selectionView;
     private TextView translationView;
 
-    private Translator translator;
     private TextRecognizer recognizer;
+    private Translator translator;
 
     private int screenWidth;
     private int screenHeight;
@@ -70,7 +70,9 @@ public class ScreenCaptureService extends Service {
         android.util.DisplayMetrics metrics =
                 new android.util.DisplayMetrics();
 
-        windowManager.getDefaultDisplay().getRealMetrics(metrics);
+        windowManager
+                .getDefaultDisplay()
+                .getRealMetrics(metrics);
 
         screenWidth = metrics.widthPixels;
         screenHeight = metrics.heightPixels;
@@ -81,7 +83,7 @@ public class ScreenCaptureService extends Service {
                         TextRecognizerOptions.DEFAULT_OPTIONS
                 );
 
-        TranslatorOptions options =
+        TranslatorOptions translatorOptions =
                 new TranslatorOptions.Builder()
                         .setSourceLanguage(
                                 TranslateLanguage.ENGLISH
@@ -92,7 +94,9 @@ public class ScreenCaptureService extends Service {
                         .build();
 
         translator =
-                Translation.getClient(options);
+                Translation.getClient(
+                        translatorOptions
+                );
 
         createNotificationChannel();
 
@@ -133,7 +137,8 @@ public class ScreenCaptureService extends Service {
     public int onStartCommand(
             Intent intent,
             int flags,
-            int startId) {
+            int startId
+    ) {
 
         if (intent == null) {
             return START_NOT_STICKY;
@@ -164,7 +169,8 @@ public class ScreenCaptureService extends Service {
 
     private void startProjection(
             int resultCode,
-            Intent resultData) {
+            Intent resultData
+    ) {
 
         MediaProjectionManager manager =
                 (MediaProjectionManager)
@@ -187,32 +193,7 @@ public class ScreenCaptureService extends Service {
                 );
 
         imageReader.setOnImageAvailableListener(
-                reader -> {
-
-                    Image image = null;
-
-                    try {
-
-                        image =
-                                reader.acquireLatestImage();
-
-                        if (image == null) {
-                            return;
-                        }
-
-                        latestBitmap =
-                                imageToBitmap(image);
-
-                    } catch (Exception ignored) {
-
-                    } finally {
-
-                        if (image != null) {
-                            image.close();
-                        }
-                    }
-
-                },
+                reader -> captureImage(reader),
                 null
         );
 
@@ -222,7 +203,8 @@ public class ScreenCaptureService extends Service {
                         screenWidth,
                         screenHeight,
                         screenDensity,
-                        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                        DisplayManager
+                                .VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                         imageReader.getSurface(),
                         null,
                         null
@@ -243,7 +225,43 @@ public class ScreenCaptureService extends Service {
         showFloatingButton();
     }
 
-    private Bitmap imageToBitmap(Image image) {
+    private void captureImage(
+            ImageReader reader
+    ) {
+
+        Image image = null;
+
+        try {
+
+            image =
+                    reader.acquireLatestImage();
+
+            if (image == null) {
+                return;
+            }
+
+            Bitmap bitmap =
+                    imageToBitmap(image);
+
+            if (latestBitmap != null) {
+                latestBitmap.recycle();
+            }
+
+            latestBitmap = bitmap;
+
+        } catch (Exception ignored) {
+
+        } finally {
+
+            if (image != null) {
+                image.close();
+            }
+        }
+    }
+
+    private Bitmap imageToBitmap(
+            Image image
+    ) {
 
         Image.Plane plane =
                 image.getPlanes()[0];
@@ -312,4 +330,35 @@ public class ScreenCaptureService extends Service {
                 Color.rgb(
                         37,
                         99,
-                       
+                        235
+                )
+        );
+
+        button.setOnClickListener(
+                v -> showSelection()
+        );
+
+        floatingButton = button;
+
+        WindowManager.LayoutParams params =
+                new WindowManager.LayoutParams(
+                        58,
+                        58,
+                        Build.VERSION.SDK_INT >= 26
+                                ? WindowManager.LayoutParams
+                                        .TYPE_APPLICATION_OVERLAY
+                                : WindowManager.LayoutParams
+                                        .TYPE_PHONE,
+                        WindowManager.LayoutParams
+                                .FLAG_NOT_FOCUSABLE,
+                        PixelFormat.TRANSLUCENT
+                );
+
+        params.gravity =
+                Gravity.RIGHT |
+                        Gravity.CENTER_VERTICAL;
+
+        params.x = 20;
+        params.y = 0;
+
+       
