@@ -126,9 +126,17 @@
             android:id="@+id/errorButton"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:text="سجل الأخطاء"
+            android:text="عرض سجل الأخطاء"
             android:textSize="15sp"
             android:layout_marginTop="12dp"/>
+
+        <Button
+            android:id="@+id/clearErrorButton"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="مسح سجل الأخطاء"
+            android:textSize="14sp"
+            android:layout_marginTop="6dp"/>
 
         <TextView
             android:id="@+id/errorText"
@@ -140,7 +148,7 @@
             android:padding="14dp"
             android:layout_marginTop="12dp"
             android:textIsSelectable="true"
-            android:visibility="gone"/>
+            android:visibility="visible"/>
 
     </LinearLayout>
 
