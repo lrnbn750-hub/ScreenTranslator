@@ -67,7 +67,9 @@ public class ScreenCaptureService extends Service {
     private SelectionOverlayView selectionView;
 
     private final Handler handler =
-            new Handler(Looper.getMainLooper());
+            new Handler(
+                    Looper.getMainLooper()
+            );
 
     private Translator translator;
 
@@ -126,14 +128,27 @@ public class ScreenCaptureService extends Service {
 
         super.onCreate();
 
+        /*
+         * مهم جدًا:
+         * تشغيل Foreground Service فورًا
+         * قبل تهيئة OCR والترجمة.
+         */
         createNotificationChannel();
 
+        startForegroundImmediately();
+
+        /*
+         * بعد تشغيل الخدمة نبدأ باقي التهيئة.
+         */
         windowManager =
                 (WindowManager)
                         getSystemService(
                                 WINDOW_SERVICE
                         );
 
+        /*
+         * OCR
+         */
         recognizer =
                 TextRecognition
                         .getClient(
@@ -141,6 +156,9 @@ public class ScreenCaptureService extends Service {
                                         .DEFAULT_OPTIONS
                         );
 
+        /*
+         * English -> Arabic
+         */
         TranslatorOptions options =
                 new TranslatorOptions.Builder()
                         .setSourceLanguage(
@@ -156,6 +174,10 @@ public class ScreenCaptureService extends Service {
                         options
                 );
 
+        /*
+         * تنزيل نموذج الترجمة.
+         * لا يشترط Wi-Fi.
+         */
         DownloadConditions conditions =
                 new DownloadConditions.Builder()
                         .build();
@@ -165,38 +187,56 @@ public class ScreenCaptureService extends Service {
                         conditions
                 )
                 .addOnFailureListener(
-                        error ->
-                                ErrorLogger.save(
-                                        this,
-                                        error
-                                )
+                        error -> {
+
+                            ErrorLogger.save(
+                                    this,
+                                    error
+                            );
+                        }
                 );
 
+        /*
+         * زر 文
+         */
         createFloatingButton();
 
+        /*
+         * مربع الترجمة
+         */
         createTranslationView();
     }
 
-    private void startForegroundForProjection() {
+    private void startForegroundImmediately() {
 
-        Notification notification =
-                createNotification();
+        try {
 
-        if (Build.VERSION.SDK_INT >=
-                Build.VERSION_CODES.Q) {
+            Notification notification =
+                    createNotification();
 
-            startForeground(
-                    1001,
-                    notification,
-                    ServiceInfo
-                            .FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-            );
+            if (Build.VERSION.SDK_INT >=
+                    Build.VERSION_CODES.Q) {
 
-        } else {
+                startForeground(
+                        1001,
+                        notification,
+                        ServiceInfo
+                                .FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                );
 
-            startForeground(
-                    1001,
-                    notification
+            } else {
+
+                startForeground(
+                        1001,
+                        notification
+                );
+            }
+
+        } catch (Exception error) {
+
+            ErrorLogger.save(
+                    this,
+                    error
             );
         }
     }
@@ -245,7 +285,7 @@ public class ScreenCaptureService extends Service {
                             "مترجم الشاشة"
                     )
                     .setContentText(
-                            "ترجمة الشاشة تعمل"
+                            "مترجم الشاشة يعمل"
                     )
                     .setSmallIcon(
                             android.R.drawable
@@ -262,7 +302,7 @@ public class ScreenCaptureService extends Service {
                         "مترجم الشاشة"
                 )
                 .setContentText(
-                        "ترجمة الشاشة تعمل"
+                        "مترجم الشاشة يعمل"
                 )
                 .setSmallIcon(
                         android.R.drawable
@@ -277,9 +317,13 @@ public class ScreenCaptureService extends Service {
         floatingButton =
                 new TextView(this);
 
-        floatingButton.setText("文");
+        floatingButton.setText(
+                "文"
+        );
 
-        floatingButton.setTextSize(20);
+        floatingButton.setTextSize(
+                20
+        );
 
         floatingButton.setTextColor(
                 android.graphics.Color.WHITE
@@ -296,7 +340,9 @@ public class ScreenCaptureService extends Service {
                 )
         );
 
-        floatingButton.setElevation(10);
+        floatingButton.setElevation(
+                10
+        );
 
         floatingButton.setOnClickListener(
                 view -> {
@@ -372,7 +418,9 @@ public class ScreenCaptureService extends Service {
                 )
         );
 
-        menuView.setElevation(12);
+        menuView.setElevation(
+                12
+        );
 
         TextView selectButton =
                 new TextView(this);
@@ -381,10 +429,16 @@ public class ScreenCaptureService extends Service {
                 "تحديد منطقة جديدة"
         );
 
-        selectButton.setTextSize(15);
+        selectButton.setTextSize(
+                15
+        );
 
         selectButton.setTextColor(
-                android.graphics.Color.DKGRAY
+                android.graphics.Color.rgb(
+                        30,
+                        30,
+                        30
+                )
         );
 
         selectButton.setGravity(
@@ -405,7 +459,9 @@ public class ScreenCaptureService extends Service {
                 "إغلاق المترجم"
         );
 
-        closeButton.setTextSize(15);
+        closeButton.setTextSize(
+                15
+        );
 
         closeButton.setTextColor(
                 android.graphics.Color.rgb(
@@ -521,7 +577,9 @@ public class ScreenCaptureService extends Service {
         translationView =
                 new TextView(this);
 
-        translationView.setTextSize(14);
+        translationView.setTextSize(
+                14
+        );
 
         translationView.setTextColor(
                 android.graphics.Color.WHITE
@@ -538,7 +596,9 @@ public class ScreenCaptureService extends Service {
                 5
         );
 
-        translationView.setSingleLine(false);
+        translationView.setSingleLine(
+                false
+        );
 
         translationView.setBackground(
                 createRoundBackground(
@@ -595,9 +655,13 @@ public class ScreenCaptureService extends Service {
                 new android.graphics.drawable
                         .GradientDrawable();
 
-        drawable.setColor(color);
+        drawable.setColor(
+                color
+        );
 
-        drawable.setCornerRadius(radius);
+        drawable.setCornerRadius(
+                radius
+        );
 
         return drawable;
     }
@@ -655,13 +719,16 @@ public class ScreenCaptureService extends Service {
                             selectedBottom =
                                     bottom;
 
-                            hasSelection = true;
+                            hasSelection =
+                                    true;
 
-                            selecting = false;
+                            selecting =
+                                    false;
 
                             removeSelectionView();
 
-                            lastEnglishText = "";
+                            lastEnglishText =
+                                    "";
 
                             hideTranslation();
 
@@ -704,9 +771,11 @@ public class ScreenCaptureService extends Service {
                     error
             );
 
-            selectionView = null;
+            selectionView =
+                    null;
 
-            selecting = false;
+            selecting =
+                    false;
         }
     }
 
@@ -723,7 +792,8 @@ public class ScreenCaptureService extends Service {
             } catch (Exception ignored) {
             }
 
-            selectionView = null;
+            selectionView =
+                    null;
         }
     }
 
@@ -826,7 +896,8 @@ public class ScreenCaptureService extends Service {
 
                                 if (text.isEmpty()) {
 
-                                    lastEnglishText = "";
+                                    lastEnglishText =
+                                            "";
 
                                     hideTranslation();
 
@@ -1159,8 +1230,6 @@ public class ScreenCaptureService extends Service {
                 return START_NOT_STICKY;
             }
 
-            startForegroundForProjection();
-
             android.util.DisplayMetrics metrics =
                     getResources()
                             .getDisplayMetrics();
@@ -1195,7 +1264,8 @@ public class ScreenCaptureService extends Service {
 
         } catch (Exception error) {
 
-            projectionReady = false;
+            projectionReady =
+                    false;
 
             ErrorLogger.save(
                     this,
@@ -1345,4 +1415,4 @@ public class ScreenCaptureService extends Service {
 
         return null;
     }
-                }
+                                    }
