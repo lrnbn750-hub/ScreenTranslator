@@ -5,9 +5,11 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
-import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
 import android.media.Image;
 import android.media.ImageReader;
 import android.media.projection.MediaProjection;
@@ -16,27 +18,22 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.provider.Settings;
 import android.view.Gravity;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.annotation.Nullable;
-
 import com.google.mlkit.common.model.DownloadConditions;
-import com.google.mlkit.nl.translate.TranslateLanguage;
 import com.google.mlkit.nl.translate.Translation;
 import com.google.mlkit.nl.translate.Translator;
 import com.google.mlkit.nl.translate.TranslatorOptions;
+import com.google.mlkit.nl.translate.TranslateLanguage;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.nio.ByteBuffer;
-import java.util.HashSet;
-import java.util.Set;
 
 public class ScreenCaptureService extends Service {
 
@@ -49,14 +46,23 @@ public class ScreenCaptureService extends Service {
     private static final String CHANNEL_ID =
             "screen_translator";
 
+    private static final int NOTIFICATION_ID = 77;
+
+    /*
+     * الفحص كل ثانيتين
+     */
     private static final long SCAN_INTERVAL =
             2000L;
 
+    private WindowManager windowManager;
+
     private MediaProjection mediaProjection;
+
+    private VirtualDisplay virtualDisplay;
 
     private ImageReader imageReader;
 
-    private WindowManager windowManager;
+    private Bitmap latestBitmap;
 
     private TextView floatingButton;
 
@@ -66,19 +72,19 @@ public class ScreenCaptureService extends Service {
 
     private SelectionOverlayView selectionView;
 
-    private final Handler handler =
-            new Handler(
-                    Looper.getMainLooper()
-            );
+    private TextRecognizer recognizer;
 
     private Translator translator;
-
-    private TextRecognizer recognizer;
 
     private int screenWidth;
 
     private int screenHeight;
 
+    private int screenDensity;
+
+    /*
+     * منطقة التحديد الحالية
+     */
     private int selectedLeft;
 
     private int selectedTop;
@@ -87,18 +93,28 @@ public class ScreenCaptureService extends Service {
 
     private int selectedBottom;
 
-    private boolean hasSelection = false;
+    private boolean hasSelection =
+            false;
 
-    private boolean running = false;
+    private boolean translatorRunning =
+            false;
 
-    private boolean selecting = false;
+    /*
+     * آخر نص تم التعرف عليه
+     */
+    private String lastEnglishText =
+            "";
 
-    private boolean projectionReady = false;
+    /*
+     * حتى لا نرسل نفس النص للترجمة
+     */
+    private String translatingText =
+            "";
 
-    private String lastEnglishText = "";
-
-    private final Set<String> translatingTexts =
-            new HashSet<>();
+    private final Handler handler =
+            new Handler(
+                    Looper.getMainLooper()
+            );
 
     private final Runnable scanRunnable =
             new Runnable() {
@@ -106,14 +122,13 @@ public class ScreenCaptureService extends Service {
                 @Override
                 public void run() {
 
-                    if (running &&
-                            hasSelection &&
-                            projectionReady) {
+                    if (translatorRunning &&
+                            hasSelection) {
 
-                        captureAndTranslate();
+                        scanSelectedArea();
                     }
 
-                    if (running) {
+                    if (translatorRunning) {
 
                         handler.postDelayed(
                                 this,
@@ -123,196 +138,432 @@ public class ScreenCaptureService extends Service {
                 }
             };
 
+    /*
+     * عند إيقاف مشاركة الشاشة
+     */
+    private final MediaProjection.Callback
+            projectionCallback =
+            new MediaProjection.Callback() {
+
+                @Override
+                public void onStop() {
+
+                    stopScreenCapture();
+                }
+            };
+
     @Override
     public void onCreate() {
 
         super.onCreate();
 
-        /*
-         * مهم جدًا:
-         * تشغيل Foreground Service فورًا
-         * قبل تهيئة OCR والترجمة.
-         */
-        createNotificationChannel();
+        try {
 
-        startForegroundImmediately();
+            /*
+             * أول شيء شغل Foreground
+             * حتى لا يقتل Android الخدمة.
+             */
+            createNotificationChannel();
 
-        /*
-         * بعد تشغيل الخدمة نبدأ باقي التهيئة.
-         */
-        windowManager =
-                (WindowManager)
-                        getSystemService(
-                                WINDOW_SERVICE
-                        );
+            startTranslatorForeground();
 
-        /*
-         * OCR
-         */
-        recognizer =
-                TextRecognition
-                        .getClient(
-                                TextRecognizerOptions
-                                        .DEFAULT_OPTIONS
-                        );
-
-        /*
-         * English -> Arabic
-         */
-        TranslatorOptions options =
-                new TranslatorOptions.Builder()
-                        .setSourceLanguage(
-                                TranslateLanguage.ENGLISH
-                        )
-                        .setTargetLanguage(
-                                TranslateLanguage.ARABIC
-                        )
-                        .build();
-
-        translator =
-                Translation.getClient(
-                        options
-                );
-
-        /*
-         * تنزيل نموذج الترجمة.
-         * لا يشترط Wi-Fi.
-         */
-        DownloadConditions conditions =
-                new DownloadConditions.Builder()
-                        .build();
-
-        translator
-                .downloadModelIfNeeded(
-                        conditions
-                )
-                .addOnFailureListener(
-                        error -> {
-
-                            ErrorLogger.save(
-                                    this,
-                                    error
+            windowManager =
+                    (WindowManager)
+                            getSystemService(
+                                    WINDOW_SERVICE
                             );
-                        }
-                );
 
-        /*
-         * زر 文
-         */
-        createFloatingButton();
+            android.util.DisplayMetrics metrics =
+                    new android.util.DisplayMetrics();
 
-        /*
-         * مربع الترجمة
-         */
-        createTranslationView();
+            windowManager
+                    .getDefaultDisplay()
+                    .getRealMetrics(
+                            metrics
+                    );
+
+            screenWidth =
+                    metrics.widthPixels;
+
+            screenHeight =
+                    metrics.heightPixels;
+
+            screenDensity =
+                    metrics.densityDpi;
+
+            /*
+             * OCR
+             */
+            recognizer =
+                    TextRecognition.getClient(
+                            TextRecognizerOptions
+                                    .DEFAULT_OPTIONS
+                    );
+
+            /*
+             * English -> Arabic
+             */
+            TranslatorOptions options =
+                    new TranslatorOptions.Builder()
+                            .setSourceLanguage(
+                                    TranslateLanguage.ENGLISH
+                            )
+                            .setTargetLanguage(
+                                    TranslateLanguage.ARABIC
+                            )
+                            .build();
+
+            translator =
+                    Translation.getClient(
+                            options
+                    );
+
+            /*
+             * تنزيل النموذج عند الحاجة.
+             * لا يشترط Wi-Fi.
+             */
+            DownloadConditions conditions =
+                    new DownloadConditions.Builder()
+                            .build();
+
+            translator
+                    .downloadModelIfNeeded(
+                            conditions
+                    )
+                    .addOnFailureListener(
+                            error -> {
+
+                                ErrorLogger.save(
+                                        getApplicationContext(),
+                                        error
+                                );
+                            }
+                    );
+
+        } catch (Throwable error) {
+
+            ErrorLogger.save(
+                    getApplicationContext(),
+                    error
+            );
+
+            stopSelf();
+        }
     }
 
-    private void startForegroundImmediately() {
+    private void startTranslatorForeground() {
+
+        Notification notification;
+
+        if (Build.VERSION.SDK_INT >= 26) {
+
+            notification =
+                    new Notification.Builder(
+                            this,
+                            CHANNEL_ID
+                    )
+                            .setContentTitle(
+                                    "مترجم الشاشة"
+                            )
+                            .setContentText(
+                                    "المترجم يعمل الآن"
+                            )
+                            .setSmallIcon(
+                                    android.R.drawable
+                                            .ic_menu_search
+                            )
+                            .setOngoing(true)
+                            .build();
+
+        } else {
+
+            notification =
+                    new Notification.Builder(
+                            this
+                    )
+                            .setContentTitle(
+                                    "مترجم الشاشة"
+                            )
+                            .setContentText(
+                                    "المترجم يعمل الآن"
+                            )
+                            .setSmallIcon(
+                                    android.R.drawable
+                                            .ic_menu_search
+                            )
+                            .setOngoing(true)
+                            .build();
+        }
+
+        if (Build.VERSION.SDK_INT >= 29) {
+
+            startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    android.content.pm.ServiceInfo
+                            .FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+            );
+
+        } else {
+
+            startForeground(
+                    NOTIFICATION_ID,
+                    notification
+            );
+        }
+    }
+
+    @Override
+    public int onStartCommand(
+            Intent intent,
+            int flags,
+            int startId
+    ) {
 
         try {
 
-            Notification notification =
-                    createNotification();
+            if (intent == null) {
+
+                return START_NOT_STICKY;
+            }
+
+            int resultCode =
+                    intent.getIntExtra(
+                            EXTRA_RESULT_CODE,
+                            0
+                    );
+
+            Intent resultData;
 
             if (Build.VERSION.SDK_INT >=
-                    Build.VERSION_CODES.Q) {
+                    Build.VERSION_CODES.TIRAMISU) {
 
-                startForeground(
-                        1001,
-                        notification,
-                        ServiceInfo
-                                .FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-                );
+                resultData =
+                        intent.getParcelableExtra(
+                                EXTRA_RESULT_DATA,
+                                Intent.class
+                        );
 
             } else {
 
-                startForeground(
-                        1001,
-                        notification
+                resultData =
+                        intent.getParcelableExtra(
+                                EXTRA_RESULT_DATA
+                        );
+            }
+
+            if (resultData == null) {
+
+                throw new IllegalStateException(
+                        "Screen capture data is missing"
                 );
             }
 
-        } catch (Exception error) {
+            startScreenCapture(
+                    resultCode,
+                    resultData
+            );
+
+            return START_STICKY;
+
+        } catch (Throwable error) {
 
             ErrorLogger.save(
-                    this,
+                    getApplicationContext(),
                     error
             );
+
+            stopSelf();
+
+            return START_NOT_STICKY;
         }
     }
 
-    private void createNotificationChannel() {
+    private void startScreenCapture(
+            int resultCode,
+            Intent resultData
+    ) {
 
-        if (Build.VERSION.SDK_INT >=
-                Build.VERSION_CODES.O) {
+        MediaProjectionManager manager =
+                (MediaProjectionManager)
+                        getSystemService(
+                                MEDIA_PROJECTION_SERVICE
+                        );
 
-            NotificationChannel channel =
-                    new NotificationChannel(
-                            CHANNEL_ID,
-                            "مترجم الشاشة",
-                            NotificationManager
-                                    .IMPORTANCE_LOW
+        if (manager == null) {
+
+            throw new IllegalStateException(
+                    "MediaProjectionManager is unavailable"
+            );
+        }
+
+        mediaProjection =
+                manager.getMediaProjection(
+                        resultCode,
+                        resultData
+                );
+
+        if (mediaProjection == null) {
+
+            throw new IllegalStateException(
+                    "MediaProjection could not be created"
+            );
+        }
+
+        /*
+         * مهم جدًا:
+         * التسجيل قبل VirtualDisplay
+         */
+        mediaProjection.registerCallback(
+                projectionCallback,
+                handler
+        );
+
+        imageReader =
+                ImageReader.newInstance(
+                        screenWidth,
+                        screenHeight,
+                        PixelFormat.RGBA_8888,
+                        2
+                );
+
+        imageReader.setOnImageAvailableListener(
+                reader -> readScreen(reader),
+                handler
+        );
+
+        virtualDisplay =
+                mediaProjection.createVirtualDisplay(
+                        "ScreenTranslator",
+                        screenWidth,
+                        screenHeight,
+                        screenDensity,
+                        DisplayManager
+                                .VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                        imageReader.getSurface(),
+                        null,
+                        null
+                );
+
+        /*
+         * الآن نعرض زر 文
+         */
+        showFloatingButton();
+    }
+
+    private void readScreen(
+            ImageReader reader
+    ) {
+
+        Image image = null;
+
+        try {
+
+            image =
+                    reader.acquireLatestImage();
+
+            if (image == null) {
+
+                return;
+            }
+
+            Bitmap bitmap =
+                    imageToBitmap(
+                            image
                     );
 
-            channel.setDescription(
-                    "تشغيل مترجم الشاشة"
+            if (bitmap == null) {
+
+                return;
+            }
+
+            if (latestBitmap != null &&
+                    !latestBitmap.isRecycled()) {
+
+                latestBitmap.recycle();
+            }
+
+            latestBitmap =
+                    bitmap;
+
+        } catch (Throwable error) {
+
+            ErrorLogger.save(
+                    getApplicationContext(),
+                    error
             );
 
-            NotificationManager manager =
-                    getSystemService(
-                            NotificationManager.class
-                    );
+        } finally {
 
-            if (manager != null) {
+            if (image != null) {
 
-                manager.createNotificationChannel(
-                        channel
-                );
+                image.close();
             }
         }
     }
 
-    private Notification createNotification() {
+    private Bitmap imageToBitmap(
+            Image image
+    ) {
 
-        if (Build.VERSION.SDK_INT >=
-                Build.VERSION_CODES.O) {
+        Image.Plane plane =
+                image.getPlanes()[0];
 
-            return new Notification.Builder(
-                    this,
-                    CHANNEL_ID
-            )
-                    .setContentTitle(
-                            "مترجم الشاشة"
-                    )
-                    .setContentText(
-                            "مترجم الشاشة يعمل"
-                    )
-                    .setSmallIcon(
-                            android.R.drawable
-                                    .ic_menu_search
-                    )
-                    .setOngoing(true)
-                    .build();
+        ByteBuffer buffer =
+                plane.getBuffer();
+
+        int pixelStride =
+                plane.getPixelStride();
+
+        int rowStride =
+                plane.getRowStride();
+
+        int rowPadding =
+                rowStride -
+                        pixelStride *
+                                screenWidth;
+
+        Bitmap bitmap =
+                Bitmap.createBitmap(
+                        screenWidth +
+                                rowPadding /
+                                        pixelStride,
+                        screenHeight,
+                        Bitmap.Config.ARGB_8888
+                );
+
+        buffer.rewind();
+
+        bitmap.copyPixelsFromBuffer(
+                buffer
+        );
+
+        if (bitmap.getWidth() !=
+                screenWidth) {
+
+            Bitmap result =
+                    Bitmap.createBitmap(
+                            bitmap,
+                            0,
+                            0,
+                            screenWidth,
+                            screenHeight
+                    );
+
+            bitmap.recycle();
+
+            return result;
         }
 
-        return new Notification.Builder(
-                this
-        )
-                .setContentTitle(
-                        "مترجم الشاشة"
-                )
-                .setContentText(
-                        "مترجم الشاشة يعمل"
-                )
-                .setSmallIcon(
-                        android.R.drawable
-                                .ic_menu_search
-                )
-                .setOngoing(true)
-                .build();
+        return bitmap;
     }
 
-    private void createFloatingButton() {
+    private void showFloatingButton() {
+
+        if (floatingButton != null) {
+
+            return;
+        }
 
         floatingButton =
                 new TextView(this);
@@ -322,11 +573,11 @@ public class ScreenCaptureService extends Service {
         );
 
         floatingButton.setTextSize(
-                20
+                22
         );
 
         floatingButton.setTextColor(
-                android.graphics.Color.WHITE
+                Color.WHITE
         );
 
         floatingButton.setGravity(
@@ -334,7 +585,7 @@ public class ScreenCaptureService extends Service {
         );
 
         floatingButton.setBackground(
-                createRoundBackground(
+                createBackground(
                         0xDD2563EB,
                         100
                 )
@@ -347,30 +598,31 @@ public class ScreenCaptureService extends Service {
         floatingButton.setOnClickListener(
                 view -> {
 
-                    if (!selecting) {
-
-                        showMenu();
-                    }
+                    showMenu();
                 }
         );
 
         WindowManager.LayoutParams params =
                 new WindowManager.LayoutParams(
-                        58,
-                        58,
-                        getOverlayType(),
+                        60,
+                        60,
+                        Build.VERSION.SDK_INT >= 26
+                                ? WindowManager.LayoutParams
+                                        .TYPE_APPLICATION_OVERLAY
+                                : WindowManager.LayoutParams
+                                        .TYPE_PHONE,
                         WindowManager.LayoutParams
                                 .FLAG_NOT_FOCUSABLE,
                         PixelFormat.TRANSLUCENT
                 );
 
         params.gravity =
-                Gravity.TOP |
-                        Gravity.END;
+                Gravity.RIGHT |
+                        Gravity.CENTER_VERTICAL;
 
         params.x = 20;
 
-        params.y = 250;
+        params.y = 0;
 
         try {
 
@@ -379,10 +631,10 @@ public class ScreenCaptureService extends Service {
                     params
             );
 
-        } catch (Exception error) {
+        } catch (Throwable error) {
 
             ErrorLogger.save(
-                    this,
+                    getApplicationContext(),
                     error
             );
         }
@@ -412,14 +664,14 @@ public class ScreenCaptureService extends Service {
         );
 
         menuView.setBackground(
-                createRoundBackground(
+                createBackground(
                         0xF2FFFFFF,
                         18
                 )
         );
 
         menuView.setElevation(
-                12
+                15
         );
 
         TextView selectButton =
@@ -434,11 +686,7 @@ public class ScreenCaptureService extends Service {
         );
 
         selectButton.setTextColor(
-                android.graphics.Color.rgb(
-                        30,
-                        30,
-                        30
-                )
+                Color.DKGRAY
         );
 
         selectButton.setGravity(
@@ -446,10 +694,10 @@ public class ScreenCaptureService extends Service {
         );
 
         selectButton.setPadding(
+                20,
                 18,
-                17,
-                18,
-                17
+                20,
+                18
         );
 
         TextView closeButton =
@@ -464,10 +712,10 @@ public class ScreenCaptureService extends Service {
         );
 
         closeButton.setTextColor(
-                android.graphics.Color.rgb(
+                Color.rgb(
                         190,
-                        35,
-                        35
+                        40,
+                        40
                 )
         );
 
@@ -476,28 +724,18 @@ public class ScreenCaptureService extends Service {
         );
 
         closeButton.setPadding(
+                20,
                 18,
-                17,
-                18,
-                17
+                20,
+                18
         );
 
         menuView.addView(
-                selectButton,
-                new LinearLayout.LayoutParams(
-                        240,
-                        LinearLayout.LayoutParams
-                                .WRAP_CONTENT
-                )
+                selectButton
         );
 
         menuView.addView(
-                closeButton,
-                new LinearLayout.LayoutParams(
-                        240,
-                        LinearLayout.LayoutParams
-                                .WRAP_CONTENT
-                )
+                closeButton
         );
 
         selectButton.setOnClickListener(
@@ -505,7 +743,7 @@ public class ScreenCaptureService extends Service {
 
                     hideMenu();
 
-                    startSelection();
+                    showSelection();
                 }
         );
 
@@ -520,22 +758,26 @@ public class ScreenCaptureService extends Service {
 
         WindowManager.LayoutParams params =
                 new WindowManager.LayoutParams(
-                        260,
+                        270,
                         WindowManager.LayoutParams
                                 .WRAP_CONTENT,
-                        getOverlayType(),
+                        Build.VERSION.SDK_INT >= 26
+                                ? WindowManager.LayoutParams
+                                        .TYPE_APPLICATION_OVERLAY
+                                : WindowManager.LayoutParams
+                                        .TYPE_PHONE,
                         WindowManager.LayoutParams
                                 .FLAG_NOT_FOCUSABLE,
                         PixelFormat.TRANSLUCENT
                 );
 
         params.gravity =
-                Gravity.TOP |
-                        Gravity.END;
+                Gravity.RIGHT |
+                        Gravity.CENTER_VERTICAL;
 
         params.x = 20;
 
-        params.y = 315;
+        params.y = 80;
 
         try {
 
@@ -544,12 +786,12 @@ public class ScreenCaptureService extends Service {
                     params
             );
 
-        } catch (Exception error) {
+        } catch (Throwable error) {
 
             menuView = null;
 
             ErrorLogger.save(
-                    this,
+                    getApplicationContext(),
                     error
             );
         }
@@ -557,95 +799,25 @@ public class ScreenCaptureService extends Service {
 
     private void hideMenu() {
 
-        if (menuView != null) {
+        if (menuView == null) {
 
-            try {
-
-                windowManager.removeView(
-                        menuView
-                );
-
-            } catch (Exception ignored) {
-            }
-
-            menuView = null;
+            return;
         }
-    }
-
-    private void createTranslationView() {
-
-        translationView =
-                new TextView(this);
-
-        translationView.setTextSize(
-                14
-        );
-
-        translationView.setTextColor(
-                android.graphics.Color.WHITE
-        );
-
-        translationView.setGravity(
-                Gravity.CENTER
-        );
-
-        translationView.setPadding(
-                10,
-                5,
-                10,
-                5
-        );
-
-        translationView.setSingleLine(
-                false
-        );
-
-        translationView.setBackground(
-                createRoundBackground(
-                        0xA8000000,
-                        12
-                )
-        );
-
-        translationView.setVisibility(
-                TextView.GONE
-        );
-
-        WindowManager.LayoutParams params =
-                new WindowManager.LayoutParams(
-                        420,
-                        WindowManager.LayoutParams
-                                .WRAP_CONTENT,
-                        getOverlayType(),
-                        WindowManager.LayoutParams
-                                .FLAG_NOT_FOCUSABLE |
-                                WindowManager.LayoutParams
-                                .FLAG_NOT_TOUCHABLE,
-                        PixelFormat.TRANSLUCENT
-                );
-
-        params.gravity =
-                Gravity.TOP |
-                        Gravity.START;
 
         try {
 
-            windowManager.addView(
-                    translationView,
-                    params
+            windowManager.removeView(
+                    menuView
             );
 
-        } catch (Exception error) {
-
-            ErrorLogger.save(
-                    this,
-                    error
-            );
+        } catch (Exception ignored) {
         }
+
+        menuView = null;
     }
 
     private android.graphics.drawable.GradientDrawable
-    createRoundBackground(
+    createBackground(
             int color,
             int radius
     ) {
@@ -666,34 +838,12 @@ public class ScreenCaptureService extends Service {
         return drawable;
     }
 
-    private int getOverlayType() {
+    private void showSelection() {
 
-        if (Build.VERSION.SDK_INT >=
-                Build.VERSION_CODES.O) {
-
-            return WindowManager.LayoutParams
-                    .TYPE_APPLICATION_OVERLAY;
-        }
-
-        return WindowManager.LayoutParams
-                .TYPE_PHONE;
-    }
-
-    private void startSelection() {
-
-        if (!Settings.canDrawOverlays(
-                this
-        )) {
+        if (selectionView != null) {
 
             return;
         }
-
-        if (!projectionReady) {
-
-            return;
-        }
-
-        selecting = true;
 
         hideTranslation();
 
@@ -722,32 +872,36 @@ public class ScreenCaptureService extends Service {
                             hasSelection =
                                     true;
 
-                            selecting =
-                                    false;
-
-                            removeSelectionView();
-
                             lastEnglishText =
                                     "";
 
-                            hideTranslation();
+                            translatingText =
+                                    "";
 
-                            if (!running) {
+                            removeSelection();
 
-                                running = true;
+                            translatorRunning =
+                                    true;
 
-                                handler.post(
-                                        scanRunnable
-                                );
-                            }
+                            handler.removeCallbacks(
+                                    scanRunnable
+                            );
+
+                            handler.post(
+                                    scanRunnable
+                            );
                         }
                 );
 
         WindowManager.LayoutParams params =
                 new WindowManager.LayoutParams(
-                        -1,
-                        -1,
-                        getOverlayType(),
+                        screenWidth,
+                        screenHeight,
+                        Build.VERSION.SDK_INT >= 26
+                                ? WindowManager.LayoutParams
+                                        .TYPE_APPLICATION_OVERLAY
+                                : WindowManager.LayoutParams
+                                        .TYPE_PHONE,
                         WindowManager.LayoutParams
                                 .FLAG_NOT_FOCUSABLE,
                         PixelFormat.TRANSLUCENT
@@ -755,7 +909,7 @@ public class ScreenCaptureService extends Service {
 
         params.gravity =
                 Gravity.TOP |
-                        Gravity.START;
+                        Gravity.LEFT;
 
         try {
 
@@ -764,116 +918,98 @@ public class ScreenCaptureService extends Service {
                     params
             );
 
-        } catch (Exception error) {
+        } catch (Throwable error) {
 
             ErrorLogger.save(
-                    this,
+                    getApplicationContext(),
                     error
             );
 
-            selectionView =
-                    null;
-
-            selecting =
-                    false;
+            selectionView = null;
         }
     }
 
-    private void removeSelectionView() {
+    private void removeSelection() {
 
-        if (selectionView != null) {
-
-            try {
-
-                windowManager.removeView(
-                        selectionView
-                );
-
-            } catch (Exception ignored) {
-            }
-
-            selectionView =
-                    null;
-        }
-    }
-
-    private void captureAndTranslate() {
-
-        if (mediaProjection == null ||
-                imageReader == null ||
-                !projectionReady ||
-                !hasSelection) {
-
-            return;
-        }
-
-        Image image =
-                imageReader
-                        .acquireLatestImage();
-
-        if (image == null) {
+        if (selectionView == null) {
 
             return;
         }
 
         try {
 
-            Bitmap bitmap =
-                    imageToBitmap(
-                            image
-                    );
+            windowManager.removeView(
+                    selectionView
+            );
 
-            if (bitmap == null) {
+        } catch (Exception ignored) {
+        }
 
-                return;
-            }
+        selectionView = null;
+    }
 
-            int left =
+    /*
+     * فحص المنطقة المحددة
+     */
+    private void scanSelectedArea() {
+
+        if (!hasSelection ||
+                latestBitmap == null ||
+                latestBitmap.isRecycled()) {
+
+            return;
+        }
+
+        try {
+
+            int safeLeft =
                     Math.max(
                             0,
-                            selectedLeft
+                            Math.min(
+                                    selectedLeft,
+                                    screenWidth - 1
+                            )
                     );
 
-            int top =
+            int safeTop =
                     Math.max(
                             0,
-                            selectedTop
+                            Math.min(
+                                    selectedTop,
+                                    screenHeight - 1
+                            )
                     );
 
-            int right =
-                    Math.min(
-                            bitmap.getWidth(),
-                            selectedRight
+            int safeRight =
+                    Math.max(
+                            safeLeft + 1,
+                            Math.min(
+                                    selectedRight,
+                                    screenWidth
+                            )
                     );
 
-            int bottom =
-                    Math.min(
-                            bitmap.getHeight(),
-                            selectedBottom
+            int safeBottom =
+                    Math.max(
+                            safeTop + 1,
+                            Math.min(
+                                    selectedBottom,
+                                    screenHeight
+                            )
                     );
 
-            if (right <= left ||
-                    bottom <= top) {
-
-                bitmap.recycle();
-
-                return;
-            }
-
-            Bitmap cropped =
+            Bitmap crop =
                     Bitmap.createBitmap(
-                            bitmap,
-                            left,
-                            top,
-                            right - left,
-                            bottom - top
+                            latestBitmap,
+                            safeLeft,
+                            safeTop,
+                            safeRight - safeLeft,
+                            safeBottom - safeTop
                     );
-
-            bitmap.recycle();
 
             InputImage input =
                     InputImage.fromBitmap(
-                            cropped,
+                            crop,
                             0
                     );
 
@@ -889,14 +1025,20 @@ public class ScreenCaptureService extends Service {
 
                                 try {
 
-                                    cropped.recycle();
+                                    crop.recycle();
 
                                 } catch (Exception ignored) {
                                 }
 
+                                /*
+                                 * لا يوجد نص
+                                 */
                                 if (text.isEmpty()) {
 
                                     lastEnglishText =
+                                            "";
+
+                                    translatingText =
                                             "";
 
                                     hideTranslation();
@@ -904,6 +1046,9 @@ public class ScreenCaptureService extends Service {
                                     return;
                                 }
 
+                                /*
+                                 * نفس النص القديم
+                                 */
                                 if (text.equals(
                                         lastEnglishText
                                 )) {
@@ -911,6 +1056,9 @@ public class ScreenCaptureService extends Service {
                                     return;
                                 }
 
+                                /*
+                                 * نص جديد
+                                 */
                                 lastEnglishText =
                                         text;
 
@@ -924,383 +1072,309 @@ public class ScreenCaptureService extends Service {
 
                                 try {
 
-                                    cropped.recycle();
+                                    crop.recycle();
 
                                 } catch (Exception ignored) {
                                 }
 
                                 ErrorLogger.save(
-                                        this,
+                                        getApplicationContext(),
                                         error
                                 );
                             }
                     );
 
-        } catch (Exception error) {
+        } catch (Throwable error) {
 
             ErrorLogger.save(
-                    this,
+                    getApplicationContext(),
                     error
             );
-
-        } finally {
-
-            image.close();
         }
     }
 
     private void translateText(
-            String english
+            String text
     ) {
 
-        if (english == null ||
-                english.trim().isEmpty()) {
+        if (text == null ||
+                text.trim().isEmpty()) {
 
             hideTranslation();
 
             return;
         }
 
-        if (translatingTexts.contains(
-                english
+        /*
+         * لا نترجم نفس النص مرتين بنفس الوقت
+         */
+        if (text.equals(
+                translatingText
         )) {
 
             return;
         }
 
-        translatingTexts.add(
-                english
-        );
+        translatingText =
+                text;
+
+        /*
+         * نتأكد أن النموذج موجود
+         */
+        DownloadConditions conditions =
+                new DownloadConditions.Builder()
+                        .build();
 
         translator
-                .translate(
-                        english
+                .downloadModelIfNeeded(
+                        conditions
                 )
                 .addOnSuccessListener(
-                        arabic -> {
+                        unused -> {
 
-                            translatingTexts.remove(
-                                    english
-                            );
+                            translator
+                                    .translate(
+                                            text
+                                    )
+                                    .addOnSuccessListener(
+                                            translated -> {
 
-                            if (!running) {
+                                                /*
+                                                 * إذا اختفى النص
+                                                 * قبل انتهاء الترجمة
+                                                 */
+                                                if (!text.equals(
+                                                        lastEnglishText
+                                                )) {
 
-                                return;
-                            }
+                                                    return;
+                                                }
 
-                            if (!english.equals(
-                                    lastEnglishText
-                            )) {
+                                                showTranslationAt(
+                                                        translated
+                                                );
+                                            }
+                                    )
+                                    .addOnFailureListener(
+                                            error -> {
 
-                                return;
-                            }
-
-                            showTranslation(
-                                    arabic
-                            );
+                                                ErrorLogger.save(
+                                                        getApplicationContext(),
+                                                        error
+                                                );
+                                            }
+                                    );
                         }
                 )
                 .addOnFailureListener(
                         error -> {
 
-                            translatingTexts.remove(
-                                    english
-                            );
-
                             ErrorLogger.save(
-                                    this,
+                                    getApplicationContext(),
                                     error
                             );
                         }
                 );
     }
 
-    private void showTranslation(
+    /*
+     * عرض صغير وشفاف
+     */
+    private void showTranslationAt(
             String text
     ) {
 
-        if (translationView == null ||
-                text == null ||
+        if (text == null ||
                 text.trim().isEmpty()) {
 
+            hideTranslation();
+
             return;
+        }
+
+        if (translationView == null) {
+
+            translationView =
+                    new TextView(this);
+
+            translationView.setTextColor(
+                    Color.WHITE
+            );
+
+            translationView.setTextSize(
+                    14
+            );
+
+            translationView.setGravity(
+                    Gravity.CENTER
+            );
+
+            translationView.setPadding(
+                    8,
+                    4,
+                    8,
+                    4
+            );
+
+            translationView.setBackground(
+                    createBackground(
+                            0x99000000,
+                            8
+                    )
+            );
+
+            translationView.setSingleLine(
+                    false
+            );
+
+            WindowManager.LayoutParams params =
+                    new WindowManager.LayoutParams(
+                            Math.max(
+                                    180,
+                                    Math.min(
+                                            600,
+                                            selectedRight -
+                                                    selectedLeft
+                                    )
+                            ),
+                            WindowManager.LayoutParams
+                                    .WRAP_CONTENT,
+                            Build.VERSION.SDK_INT >= 26
+                                    ? WindowManager.LayoutParams
+                                            .TYPE_APPLICATION_OVERLAY
+                                    : WindowManager.LayoutParams
+                                            .TYPE_PHONE,
+                            WindowManager.LayoutParams
+                                    .FLAG_NOT_FOCUSABLE |
+                                    WindowManager.LayoutParams
+                                    .FLAG_NOT_TOUCHABLE,
+                            PixelFormat.TRANSLUCENT
+                    );
+
+            params.gravity =
+                    Gravity.TOP |
+                            Gravity.LEFT;
+
+            params.x =
+                    selectedLeft;
+
+            params.y =
+                    selectedBottom + 5;
+
+            try {
+
+                windowManager.addView(
+                        translationView,
+                        params
+                );
+
+            } catch (Throwable error) {
+
+                ErrorLogger.save(
+                        getApplicationContext(),
+                        error
+                );
+
+                translationView =
+                        null;
+
+                return;
+            }
+
+        } else {
+
+            WindowManager.LayoutParams params =
+                    (WindowManager.LayoutParams)
+                            translationView
+                                    .getLayoutParams();
+
+            params.x =
+                    selectedLeft;
+
+            params.y =
+                    selectedBottom + 5;
+
+            try {
+
+                windowManager.updateViewLayout(
+                        translationView,
+                        params
+                );
+
+            } catch (Exception ignored) {
+            }
         }
 
         translationView.setText(
                 text.trim()
         );
 
-        translationView.setTextSize(
-                14
-        );
-
         translationView.setVisibility(
                 TextView.VISIBLE
         );
-
-        WindowManager.LayoutParams params =
-                (WindowManager.LayoutParams)
-                        translationView
-                                .getLayoutParams();
-
-        params.x =
-                selectedLeft;
-
-        params.y =
-                selectedBottom + 8;
-
-        try {
-
-            windowManager.updateViewLayout(
-                    translationView,
-                    params
-            );
-
-        } catch (Exception ignored) {
-        }
     }
 
     private void hideTranslation() {
 
-        if (translationView != null) {
+        if (translationView == null) {
 
-            translationView.setText("");
-
-            translationView.setVisibility(
-                    TextView.GONE
-            );
+            return;
         }
-    }
-
-    private Bitmap imageToBitmap(
-            Image image
-    ) {
-
-        Image.Plane[] planes =
-                image.getPlanes();
-
-        if (planes.length == 0) {
-
-            return null;
-        }
-
-        ByteBuffer buffer =
-                planes[0].getBuffer();
-
-        buffer.rewind();
-
-        int pixelStride =
-                planes[0].getPixelStride();
-
-        int rowStride =
-                planes[0].getRowStride();
-
-        if (pixelStride <= 0) {
-
-            return null;
-        }
-
-        int rowPadding =
-                rowStride -
-                        pixelStride *
-                                screenWidth;
-
-        int bitmapWidth =
-                screenWidth +
-                        rowPadding /
-                                pixelStride;
-
-        Bitmap bitmap =
-                Bitmap.createBitmap(
-                        bitmapWidth,
-                        screenHeight,
-                        Bitmap.Config.ARGB_8888
-                );
-
-        bitmap.copyPixelsFromBuffer(
-                buffer
-        );
-
-        if (bitmapWidth !=
-                screenWidth) {
-
-            Bitmap cropped =
-                    Bitmap.createBitmap(
-                            bitmap,
-                            0,
-                            0,
-                            screenWidth,
-                            screenHeight
-                    );
-
-            bitmap.recycle();
-
-            return cropped;
-        }
-
-        return bitmap;
-    }
-
-    @Override
-    public int onStartCommand(
-            Intent intent,
-            int flags,
-            int startId
-    ) {
 
         try {
 
-            if (intent == null) {
-
-                stopSelf();
-
-                return START_NOT_STICKY;
-            }
-
-            int resultCode =
-                    intent.getIntExtra(
-                            EXTRA_RESULT_CODE,
-                            -1
-                    );
-
-            Intent resultData;
-
-            if (Build.VERSION.SDK_INT >=
-                    Build.VERSION_CODES.TIRAMISU) {
-
-                resultData =
-                        intent.getParcelableExtra(
-                                EXTRA_RESULT_DATA,
-                                Intent.class
-                        );
-
-            } else {
-
-                resultData =
-                        intent.getParcelableExtra(
-                                EXTRA_RESULT_DATA
-                        );
-            }
-
-            if (resultCode == -1 ||
-                    resultData == null) {
-
-                ErrorLogger.save(
-                        this,
-                        new Exception(
-                                "MediaProjection data missing"
-                        )
-                );
-
-                stopSelf();
-
-                return START_NOT_STICKY;
-            }
-
-            MediaProjectionManager manager =
-                    (MediaProjectionManager)
-                            getSystemService(
-                                    MEDIA_PROJECTION_SERVICE
-                            );
-
-            if (manager == null) {
-
-                stopSelf();
-
-                return START_NOT_STICKY;
-            }
-
-            mediaProjection =
-                    manager.getMediaProjection(
-                            resultCode,
-                            resultData
-                    );
-
-            if (mediaProjection == null) {
-
-                ErrorLogger.save(
-                        this,
-                        new Exception(
-                                "MediaProjection is null"
-                        )
-                );
-
-                stopSelf();
-
-                return START_NOT_STICKY;
-            }
-
-            android.util.DisplayMetrics metrics =
-                    getResources()
-                            .getDisplayMetrics();
-
-            screenWidth =
-                    metrics.widthPixels;
-
-            screenHeight =
-                    metrics.heightPixels;
-
-            imageReader =
-                    ImageReader.newInstance(
-                            screenWidth,
-                            screenHeight,
-                            PixelFormat.RGBA_8888,
-                            2
-                    );
-
-            mediaProjection
-                    .createVirtualDisplay(
-                            "ScreenTranslator",
-                            screenWidth,
-                            screenHeight,
-                            metrics.densityDpi,
-                            0,
-                            imageReader.getSurface(),
-                            null,
-                            handler
-                    );
-
-            projectionReady = true;
-
-        } catch (Exception error) {
-
-            projectionReady =
-                    false;
-
-            ErrorLogger.save(
-                    this,
-                    error
+            windowManager.removeView(
+                    translationView
             );
 
-            stopSelf();
+        } catch (Exception ignored) {
         }
 
-        return START_NOT_STICKY;
+        translationView =
+                null;
     }
 
     private void stopTranslator() {
 
-        hideMenu();
+        translatorRunning =
+                false;
 
-        running = false;
+        hasSelection =
+                false;
 
-        projectionReady = false;
+        lastEnglishText =
+                "";
 
-        hasSelection = false;
-
-        selecting = false;
-
-        lastEnglishText = "";
-
-        translatingTexts.clear();
+        translatingText =
+                "";
 
         handler.removeCallbacks(
                 scanRunnable
         );
 
+        hideMenu();
+
+        removeSelection();
+
         hideTranslation();
 
-        removeSelectionView();
+        stopScreenCapture();
+
+        stopSelf();
+    }
+
+    private void stopScreenCapture() {
+
+        translatorRunning =
+                false;
+
+        handler.removeCallbacks(
+                scanRunnable
+        );
+
+        removeSelection();
+
+        hideTranslation();
 
         if (floatingButton != null) {
 
@@ -1313,37 +1387,61 @@ public class ScreenCaptureService extends Service {
             } catch (Exception ignored) {
             }
 
-            floatingButton = null;
+            floatingButton =
+                    null;
         }
 
-        if (translationView != null) {
+        if (virtualDisplay != null) {
 
             try {
 
-                windowManager.removeView(
-                        translationView
+                virtualDisplay.release();
+
+            } catch (Exception ignored) {
+            }
+
+            virtualDisplay =
+                    null;
+        }
+
+        if (imageReader != null) {
+
+            try {
+
+                imageReader.close();
+
+            } catch (Exception ignored) {
+            }
+
+            imageReader =
+                    null;
+        }
+
+        if (latestBitmap != null &&
+                !latestBitmap.isRecycled()) {
+
+            try {
+
+                latestBitmap.recycle();
+
+            } catch (Exception ignored) {
+            }
+
+            latestBitmap =
+                    null;
+        }
+
+        if (mediaProjection != null) {
+
+            try {
+
+                mediaProjection.unregisterCallback(
+                        projectionCallback
                 );
 
             } catch (Exception ignored) {
             }
 
-            translationView = null;
-        }
-
-        if (imageReader != null) {
-
-            try {
-
-                imageReader.close();
-
-            } catch (Exception ignored) {
-            }
-
-            imageReader = null;
-        }
-
-        if (mediaProjection != null) {
-
             try {
 
                 mediaProjection.stop();
@@ -1351,54 +1449,33 @@ public class ScreenCaptureService extends Service {
             } catch (Exception ignored) {
             }
 
-            mediaProjection = null;
+            mediaProjection =
+                    null;
         }
-
-        stopSelf();
     }
 
     @Override
     public void onDestroy() {
 
-        running = false;
-
-        projectionReady = false;
-
-        handler.removeCallbacks(
-                scanRunnable
-        );
-
         hideMenu();
 
-        hideTranslation();
-
-        removeSelectionView();
+        stopScreenCapture();
 
         if (recognizer != null) {
 
-            recognizer.close();
-        }
-
-        if (translator != null) {
-
-            translator.close();
-        }
-
-        if (imageReader != null) {
-
             try {
 
-                imageReader.close();
+                recognizer.close();
 
             } catch (Exception ignored) {
             }
         }
 
-        if (mediaProjection != null) {
+        if (translator != null) {
 
             try {
 
-                mediaProjection.stop();
+                translator.close();
 
             } catch (Exception ignored) {
             }
@@ -1407,7 +1484,6 @@ public class ScreenCaptureService extends Service {
         super.onDestroy();
     }
 
-    @Nullable
     @Override
     public IBinder onBind(
             Intent intent
@@ -1415,4 +1491,4 @@ public class ScreenCaptureService extends Service {
 
         return null;
     }
-                                    }
+            }
