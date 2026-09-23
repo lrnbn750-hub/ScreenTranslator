@@ -26,9 +26,9 @@ import androidx.annotation.Nullable;
 
 import com.google.mlkit.common.model.DownloadConditions;
 import com.google.mlkit.nl.translate.TranslateLanguage;
-import com.google.mlkit.translate.Translation;
-import com.google.mlkit.translate.Translator;
-import com.google.mlkit.translate.TranslatorOptions;
+import com.google.mlkit.nl.translate.Translation;
+import com.google.mlkit.nl.translate.Translator;
+import com.google.mlkit.nl.translate.TranslatorOptions;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
@@ -165,10 +165,11 @@ public class ScreenCaptureService extends Service {
                         conditions
                 )
                 .addOnFailureListener(
-                        error -> ErrorLogger.save(
-                                this,
-                                error
-                        )
+                        error ->
+                                ErrorLogger.save(
+                                        this,
+                                        error
+                                )
                 );
 
         createFloatingButton();
@@ -181,34 +182,22 @@ public class ScreenCaptureService extends Service {
         Notification notification =
                 createNotification();
 
-        try {
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.Q) {
 
-            if (Build.VERSION.SDK_INT >=
-                    Build.VERSION_CODES.Q) {
-
-                startForeground(
-                        1001,
-                        notification,
-                        ServiceInfo
-                                .FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-                );
-
-            } else {
-
-                startForeground(
-                        1001,
-                        notification
-                );
-            }
-
-        } catch (Exception error) {
-
-            ErrorLogger.save(
-                    this,
-                    error
+            startForeground(
+                    1001,
+                    notification,
+                    ServiceInfo
+                            .FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
             );
 
-            throw error;
+        } else {
+
+            startForeground(
+                    1001,
+                    notification
+            );
         }
     }
 
@@ -224,6 +213,10 @@ public class ScreenCaptureService extends Service {
                             NotificationManager
                                     .IMPORTANCE_LOW
                     );
+
+            channel.setDescription(
+                    "تشغيل مترجم الشاشة"
+            );
 
             NotificationManager manager =
                     getSystemService(
@@ -378,6 +371,8 @@ public class ScreenCaptureService extends Service {
                         18
                 )
         );
+
+        menuView.setElevation(12);
 
         TextView selectButton =
                 new TextView(this);
@@ -648,13 +643,17 @@ public class ScreenCaptureService extends Service {
                                 bottom
                         ) -> {
 
-                            selectedLeft = left;
+                            selectedLeft =
+                                    left;
 
-                            selectedTop = top;
+                            selectedTop =
+                                    top;
 
-                            selectedRight = right;
+                            selectedRight =
+                                    right;
 
-                            selectedBottom = bottom;
+                            selectedBottom =
+                                    bottom;
 
                             hasSelection = true;
 
@@ -750,7 +749,9 @@ public class ScreenCaptureService extends Service {
         try {
 
             Bitmap bitmap =
-                    imageToBitmap(image);
+                    imageToBitmap(
+                            image
+                    );
 
             if (bitmap == null) {
 
@@ -1116,7 +1117,7 @@ public class ScreenCaptureService extends Service {
                 ErrorLogger.save(
                         this,
                         new Exception(
-                                "MediaProjection permission data missing"
+                                "MediaProjection data missing"
                         )
                 );
 
@@ -1344,4 +1345,4 @@ public class ScreenCaptureService extends Service {
 
         return null;
     }
-            }
+                }
