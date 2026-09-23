@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.media.Image;
@@ -92,6 +93,8 @@ public class ScreenCaptureService extends Service {
 
     private boolean selecting = false;
 
+    private boolean projectionReady = false;
+
     private String lastEnglishText = "";
 
     private final Set<String> translatingTexts =
@@ -104,7 +107,8 @@ public class ScreenCaptureService extends Service {
                 public void run() {
 
                     if (running &&
-                            hasSelection) {
+                            hasSelection &&
+                            projectionReady) {
 
                         captureAndTranslate();
                     }
@@ -126,10 +130,7 @@ public class ScreenCaptureService extends Service {
 
         createNotificationChannel();
 
-        startForeground(
-                1001,
-                createNotification()
-        );
+        startForegroundServiceProperly();
 
         windowManager =
                 (WindowManager)
@@ -161,7 +162,6 @@ public class ScreenCaptureService extends Service {
 
         DownloadConditions conditions =
                 new DownloadConditions.Builder()
-                        .requireWifi()
                         .build();
 
         translator
@@ -178,6 +178,40 @@ public class ScreenCaptureService extends Service {
         createFloatingButton();
 
         createTranslationView();
+    }
+
+    private void startForegroundServiceProperly() {
+
+        Notification notification =
+                createNotification();
+
+        try {
+
+            if (Build.VERSION.SDK_INT >=
+                    Build.VERSION_CODES.Q) {
+
+                startForeground(
+                        1001,
+                        notification,
+                        ServiceInfo
+                                .FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                );
+
+            } else {
+
+                startForeground(
+                        1001,
+                        notification
+                );
+            }
+
+        } catch (Exception error) {
+
+            ErrorLogger.save(
+                    this,
+                    error
+            );
+        }
     }
 
     private void createNotificationChannel() {
@@ -256,13 +290,9 @@ public class ScreenCaptureService extends Service {
         floatingButton =
                 new TextView(this);
 
-        floatingButton.setText(
-                "文"
-        );
+        floatingButton.setText("文");
 
-        floatingButton.setTextSize(
-                20
-        );
+        floatingButton.setTextSize(20);
 
         floatingButton.setTextColor(
                 android.graphics.Color.WHITE
@@ -279,9 +309,7 @@ public class ScreenCaptureService extends Service {
                 )
         );
 
-        floatingButton.setElevation(
-                10
-        );
+        floatingButton.setElevation(10);
 
         floatingButton.setOnClickListener(
                 view -> {
@@ -357,9 +385,7 @@ public class ScreenCaptureService extends Service {
                 )
         );
 
-        menuView.setElevation(
-                12
-        );
+        menuView.setElevation(12);
 
         TextView selectButton =
                 new TextView(this);
@@ -368,9 +394,7 @@ public class ScreenCaptureService extends Service {
                 "تحديد منطقة جديدة"
         );
 
-        selectButton.setTextSize(
-                15
-        );
+        selectButton.setTextSize(15);
 
         selectButton.setTextColor(
                 android.graphics.Color.rgb(
@@ -398,9 +422,7 @@ public class ScreenCaptureService extends Service {
                 "إغلاق المترجم"
         );
 
-        closeButton.setTextSize(
-                15
-        );
+        closeButton.setTextSize(15);
 
         closeButton.setTextColor(
                 android.graphics.Color.rgb(
@@ -516,9 +538,7 @@ public class ScreenCaptureService extends Service {
         translationView =
                 new TextView(this);
 
-        translationView.setTextSize(
-                14
-        );
+        translationView.setTextSize(14);
 
         translationView.setTextColor(
                 android.graphics.Color.WHITE
@@ -535,9 +555,7 @@ public class ScreenCaptureService extends Service {
                 5
         );
 
-        translationView.setSingleLine(
-                false
-        );
+        translationView.setSingleLine(false);
 
         translationView.setBackground(
                 createRoundBackground(
@@ -594,13 +612,9 @@ public class ScreenCaptureService extends Service {
                 new android.graphics.drawable
                         .GradientDrawable();
 
-        drawable.setColor(
-                color
-        );
+        drawable.setColor(color);
 
-        drawable.setCornerRadius(
-                radius
-        );
+        drawable.setCornerRadius(radius);
 
         return drawable;
     }
@@ -653,13 +667,16 @@ public class ScreenCaptureService extends Service {
                             selectedBottom =
                                     bottom;
 
-                            hasSelection = true;
+                            hasSelection =
+                                    true;
 
-                            selecting = false;
+                            selecting =
+                                    false;
 
                             removeSelectionView();
 
-                            lastEnglishText = "";
+                            lastEnglishText =
+                                    "";
 
                             hideTranslation();
 
@@ -1086,6 +1103,8 @@ public class ScreenCaptureService extends Service {
 
         selecting = false;
 
+        projectionReady = false;
+
         lastEnglishText = "";
 
         translatingTexts.clear();
@@ -1171,6 +1190,13 @@ public class ScreenCaptureService extends Service {
             if (resultCode == -1 ||
                     resultData == null) {
 
+                ErrorLogger.save(
+                        this,
+                        new Exception(
+                                "MediaProjection permission data is missing"
+                        )
+                );
+
                 return START_NOT_STICKY;
             }
 
@@ -1180,11 +1206,35 @@ public class ScreenCaptureService extends Service {
                                     MEDIA_PROJECTION_SERVICE
                             );
 
+            if (manager == null) {
+
+                ErrorLogger.save(
+                        this,
+                        new Exception(
+                                "MediaProjectionManager is null"
+                        )
+                );
+
+                return START_NOT_STICKY;
+            }
+
             mediaProjection =
                     manager.getMediaProjection(
                             resultCode,
                             resultData
                     );
+
+            if (mediaProjection == null) {
+
+                ErrorLogger.save(
+                        this,
+                        new Exception(
+                                "MediaProjection is null"
+                        )
+                );
+
+                return START_NOT_STICKY;
+            }
 
             android.util.DisplayMetrics metrics =
                     getResources()
@@ -1216,7 +1266,11 @@ public class ScreenCaptureService extends Service {
                             handler
                     );
 
+            projectionReady = true;
+
         } catch (Exception error) {
+
+            projectionReady = false;
 
             ErrorLogger.save(
                     this,
@@ -1224,13 +1278,15 @@ public class ScreenCaptureService extends Service {
             );
         }
 
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     @Override
     public void onDestroy() {
 
         running = false;
+
+        projectionReady = false;
 
         handler.removeCallbacks(
                 scanRunnable
@@ -1283,4 +1339,4 @@ public class ScreenCaptureService extends Service {
 
         return null;
     }
-                }
+            }
