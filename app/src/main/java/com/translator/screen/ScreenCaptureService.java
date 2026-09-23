@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
@@ -24,10 +25,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.google.mlkit.common.model.DownloadConditions;
+import com.google.mlkit.nl.translate.TranslateLanguage;
 import com.google.mlkit.nl.translate.Translation;
 import com.google.mlkit.nl.translate.Translator;
 import com.google.mlkit.nl.translate.TranslatorOptions;
-import com.google.mlkit.nl.translate.TranslateLanguage;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
@@ -49,10 +50,9 @@ public class ScreenCaptureService extends Service {
     private static final int NOTIFICATION_ID = 77;
 
     /*
-     * الفحص كل ثانيتين
+     * فحص الشاشة كل ثانيتين
      */
-    private static final long SCAN_INTERVAL =
-            2000L;
+    private static final long SCAN_INTERVAL = 2000L;
 
     private WindowManager windowManager;
 
@@ -83,7 +83,7 @@ public class ScreenCaptureService extends Service {
     private int screenDensity;
 
     /*
-     * منطقة التحديد الحالية
+     * منطقة الترجمة
      */
     private int selectedLeft;
 
@@ -93,29 +93,22 @@ public class ScreenCaptureService extends Service {
 
     private int selectedBottom;
 
-    private boolean hasSelection =
-            false;
+    private boolean hasSelection = false;
 
-    private boolean translatorRunning =
-            false;
+    private boolean translatorRunning = false;
 
-    /*
-     * آخر نص تم التعرف عليه
-     */
-    private String lastEnglishText =
-            "";
+    private String lastEnglishText = "";
 
-    /*
-     * حتى لا نرسل نفس النص للترجمة
-     */
-    private String translatingText =
-            "";
+    private String translatingText = "";
 
     private final Handler handler =
             new Handler(
                     Looper.getMainLooper()
             );
 
+    /*
+     * فحص المنطقة كل ثانيتين
+     */
     private final Runnable scanRunnable =
             new Runnable() {
 
@@ -139,7 +132,7 @@ public class ScreenCaptureService extends Service {
             };
 
     /*
-     * عند إيقاف مشاركة الشاشة
+     * مراقبة إيقاف بث الشاشة
      */
     private final MediaProjection.Callback
             projectionCallback =
@@ -160,13 +153,16 @@ public class ScreenCaptureService extends Service {
         try {
 
             /*
-             * أول شيء شغل Foreground
-             * حتى لا يقتل Android الخدمة.
+             * مهم:
+             * تشغيل Foreground Service أولًا.
              */
             createNotificationChannel();
 
             startTranslatorForeground();
 
+            /*
+             * تجهيز WindowManager
+             */
             windowManager =
                     (WindowManager)
                             getSystemService(
@@ -219,8 +215,7 @@ public class ScreenCaptureService extends Service {
                     );
 
             /*
-             * تنزيل النموذج عند الحاجة.
-             * لا يشترط Wi-Fi.
+             * تنزيل نموذج الترجمة
              */
             DownloadConditions conditions =
                     new DownloadConditions.Builder()
@@ -251,6 +246,44 @@ public class ScreenCaptureService extends Service {
         }
     }
 
+    /*
+     * إنشاء Notification Channel
+     */
+    private void createNotificationChannel() {
+
+        if (Build.VERSION.SDK_INT < 26) {
+
+            return;
+        }
+
+        NotificationChannel channel =
+                new NotificationChannel(
+                        CHANNEL_ID,
+                        "مترجم الشاشة",
+                        NotificationManager
+                                .IMPORTANCE_LOW
+                );
+
+        channel.setDescription(
+                "تشغيل مترجم الشاشة"
+        );
+
+        NotificationManager manager =
+                getSystemService(
+                        NotificationManager.class
+                );
+
+        if (manager != null) {
+
+            manager.createNotificationChannel(
+                    channel
+            );
+        }
+    }
+
+    /*
+     * تشغيل Foreground Service
+     */
     private void startTranslatorForeground() {
 
         Notification notification;
@@ -300,7 +333,7 @@ public class ScreenCaptureService extends Service {
             startForeground(
                     NOTIFICATION_ID,
                     notification,
-                    android.content.pm.ServiceInfo
+                    ServiceInfo
                             .FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
             );
 
@@ -379,6 +412,9 @@ public class ScreenCaptureService extends Service {
         }
     }
 
+    /*
+     * بدء التقاط الشاشة
+     */
     private void startScreenCapture(
             int resultCode,
             Intent resultData
@@ -411,8 +447,7 @@ public class ScreenCaptureService extends Service {
         }
 
         /*
-         * مهم جدًا:
-         * التسجيل قبل VirtualDisplay
+         * تسجيل Callback قبل VirtualDisplay
          */
         mediaProjection.registerCallback(
                 projectionCallback,
@@ -446,11 +481,14 @@ public class ScreenCaptureService extends Service {
                 );
 
         /*
-         * الآن نعرض زر 文
+         * إظهار زر 文
          */
         showFloatingButton();
     }
 
+    /*
+     * قراءة آخر صورة من الشاشة
+     */
     private void readScreen(
             ImageReader reader
     ) {
@@ -502,6 +540,9 @@ public class ScreenCaptureService extends Service {
         }
     }
 
+    /*
+     * تحويل Image إلى Bitmap
+     */
     private Bitmap imageToBitmap(
             Image image
     ) {
@@ -558,6 +599,9 @@ public class ScreenCaptureService extends Service {
         return bitmap;
     }
 
+    /*
+     * زر 文
+     */
     private void showFloatingButton() {
 
         if (floatingButton != null) {
@@ -596,10 +640,7 @@ public class ScreenCaptureService extends Service {
         );
 
         floatingButton.setOnClickListener(
-                view -> {
-
-                    showMenu();
-                }
+                view -> showMenu()
         );
 
         WindowManager.LayoutParams params =
@@ -640,6 +681,9 @@ public class ScreenCaptureService extends Service {
         }
     }
 
+    /*
+     * قائمة زر 文
+     */
     private void showMenu() {
 
         if (menuView != null) {
@@ -816,6 +860,9 @@ public class ScreenCaptureService extends Service {
         menuView = null;
     }
 
+    /*
+     * خلفية الأزرار والترجمة
+     */
     private android.graphics.drawable.GradientDrawable
     createBackground(
             int color,
@@ -838,6 +885,9 @@ public class ScreenCaptureService extends Service {
         return drawable;
     }
 
+    /*
+     * تحديد منطقة الشاشة
+     */
     private void showSelection() {
 
         if (selectionView != null) {
@@ -1031,7 +1081,7 @@ public class ScreenCaptureService extends Service {
                                 }
 
                                 /*
-                                 * لا يوجد نص
+                                 * النص اختفى
                                  */
                                 if (text.isEmpty()) {
 
@@ -1047,7 +1097,7 @@ public class ScreenCaptureService extends Service {
                                 }
 
                                 /*
-                                 * نفس النص القديم
+                                 * النص نفسه
                                  */
                                 if (text.equals(
                                         lastEnglishText
@@ -1093,6 +1143,9 @@ public class ScreenCaptureService extends Service {
         }
     }
 
+    /*
+     * ترجمة النص
+     */
     private void translateText(
             String text
     ) {
@@ -1105,9 +1158,6 @@ public class ScreenCaptureService extends Service {
             return;
         }
 
-        /*
-         * لا نترجم نفس النص مرتين بنفس الوقت
-         */
         if (text.equals(
                 translatingText
         )) {
@@ -1118,9 +1168,6 @@ public class ScreenCaptureService extends Service {
         translatingText =
                 text;
 
-        /*
-         * نتأكد أن النموذج موجود
-         */
         DownloadConditions conditions =
                 new DownloadConditions.Builder()
                         .build();
@@ -1140,8 +1187,8 @@ public class ScreenCaptureService extends Service {
                                             translated -> {
 
                                                 /*
-                                                 * إذا اختفى النص
-                                                 * قبل انتهاء الترجمة
+                                                 * إذا تغير النص
+                                                 * أثناء الترجمة
                                                  */
                                                 if (!text.equals(
                                                         lastEnglishText
@@ -1178,7 +1225,8 @@ public class ScreenCaptureService extends Service {
     }
 
     /*
-     * عرض صغير وشفاف
+     * عرض الترجمة
+     * خط صغير + خلفية شفافة
      */
     private void showTranslationAt(
             String text
@@ -1227,16 +1275,19 @@ public class ScreenCaptureService extends Service {
                     false
             );
 
+            int width =
+                    Math.max(
+                            180,
+                            Math.min(
+                                    600,
+                                    selectedRight -
+                                            selectedLeft
+                            )
+                    );
+
             WindowManager.LayoutParams params =
                     new WindowManager.LayoutParams(
-                            Math.max(
-                                    180,
-                                    Math.min(
-                                            600,
-                                            selectedRight -
-                                                    selectedLeft
-                                    )
-                            ),
+                            width,
                             WindowManager.LayoutParams
                                     .WRAP_CONTENT,
                             Build.VERSION.SDK_INT >= 26
@@ -1314,6 +1365,9 @@ public class ScreenCaptureService extends Service {
         );
     }
 
+    /*
+     * إخفاء الترجمة
+     */
     private void hideTranslation() {
 
         if (translationView == null) {
@@ -1330,10 +1384,12 @@ public class ScreenCaptureService extends Service {
         } catch (Exception ignored) {
         }
 
-        translationView =
-                null;
+        translationView = null;
     }
 
+    /*
+     * إغلاق المترجم
+     */
     private void stopTranslator() {
 
         translatorRunning =
@@ -1363,6 +1419,9 @@ public class ScreenCaptureService extends Service {
         stopSelf();
     }
 
+    /*
+     * إيقاف بث الشاشة
+     */
     private void stopScreenCapture() {
 
         translatorRunning =
@@ -1387,8 +1446,7 @@ public class ScreenCaptureService extends Service {
             } catch (Exception ignored) {
             }
 
-            floatingButton =
-                    null;
+            floatingButton = null;
         }
 
         if (virtualDisplay != null) {
@@ -1400,8 +1458,7 @@ public class ScreenCaptureService extends Service {
             } catch (Exception ignored) {
             }
 
-            virtualDisplay =
-                    null;
+            virtualDisplay = null;
         }
 
         if (imageReader != null) {
@@ -1413,8 +1470,7 @@ public class ScreenCaptureService extends Service {
             } catch (Exception ignored) {
             }
 
-            imageReader =
-                    null;
+            imageReader = null;
         }
 
         if (latestBitmap != null &&
@@ -1427,8 +1483,7 @@ public class ScreenCaptureService extends Service {
             } catch (Exception ignored) {
             }
 
-            latestBitmap =
-                    null;
+            latestBitmap = null;
         }
 
         if (mediaProjection != null) {
@@ -1449,8 +1504,7 @@ public class ScreenCaptureService extends Service {
             } catch (Exception ignored) {
             }
 
-            mediaProjection =
-                    null;
+            mediaProjection = null;
         }
     }
 
@@ -1491,4 +1545,4 @@ public class ScreenCaptureService extends Service {
 
         return null;
     }
-            }
+                }
