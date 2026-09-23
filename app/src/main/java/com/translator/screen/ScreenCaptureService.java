@@ -18,15 +18,16 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.WindowManager;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
 import com.google.mlkit.common.model.DownloadConditions;
 import com.google.mlkit.nl.translate.TranslateLanguage;
+import com.google.mlkit.nl.translate.Translation;
 import com.google.mlkit.nl.translate.Translator;
 import com.google.mlkit.nl.translate.TranslatorOptions;
-import com.google.mlkit.nl.translate.Translation;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
@@ -60,10 +61,14 @@ public class ScreenCaptureService extends Service {
 
     private TextView translationView;
 
+    private LinearLayout menuView;
+
     private SelectionOverlayView selectionView;
 
     private final Handler handler =
-            new Handler(Looper.getMainLooper());
+            new Handler(
+                    Looper.getMainLooper()
+            );
 
     private Translator translator;
 
@@ -227,7 +232,6 @@ public class ScreenCaptureService extends Service {
                     )
                     .setOngoing(true)
                     .build();
-
         }
 
         return new Notification.Builder(
@@ -252,9 +256,13 @@ public class ScreenCaptureService extends Service {
         floatingButton =
                 new TextView(this);
 
-        floatingButton.setText("文");
+        floatingButton.setText(
+                "文"
+        );
 
-        floatingButton.setTextSize(20);
+        floatingButton.setTextSize(
+                20
+        );
 
         floatingButton.setTextColor(
                 android.graphics.Color.WHITE
@@ -271,7 +279,9 @@ public class ScreenCaptureService extends Service {
                 )
         );
 
-        floatingButton.setElevation(10);
+        floatingButton.setElevation(
+                10
+        );
 
         floatingButton.setOnClickListener(
                 view -> {
@@ -319,32 +329,186 @@ public class ScreenCaptureService extends Service {
 
     private void showMenu() {
 
-        String[] items = {
-                "تحديد منطقة جديدة",
+        if (menuView != null) {
+
+            hideMenu();
+
+            return;
+        }
+
+        menuView =
+                new LinearLayout(this);
+
+        menuView.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        menuView.setPadding(
+                6,
+                6,
+                6,
+                6
+        );
+
+        menuView.setBackground(
+                createRoundBackground(
+                        0xF2FFFFFF,
+                        18
+                )
+        );
+
+        menuView.setElevation(
+                12
+        );
+
+        TextView selectButton =
+                new TextView(this);
+
+        selectButton.setText(
+                "تحديد منطقة جديدة"
+        );
+
+        selectButton.setTextSize(
+                15
+        );
+
+        selectButton.setTextColor(
+                android.graphics.Color.rgb(
+                        30,
+                        30,
+                        30
+                )
+        );
+
+        selectButton.setGravity(
+                Gravity.CENTER
+        );
+
+        selectButton.setPadding(
+                18,
+                17,
+                18,
+                17
+        );
+
+        TextView closeButton =
+                new TextView(this);
+
+        closeButton.setText(
                 "إغلاق المترجم"
-        };
+        );
 
-        new android.app.AlertDialog.Builder(
-                this
-        )
-                .setTitle(
-                        "مترجم الشاشة"
+        closeButton.setTextSize(
+                15
+        );
+
+        closeButton.setTextColor(
+                android.graphics.Color.rgb(
+                        190,
+                        35,
+                        35
                 )
-                .setItems(
-                        items,
-                        (dialog, which) -> {
+        );
 
-                            if (which == 0) {
+        closeButton.setGravity(
+                Gravity.CENTER
+        );
 
-                                startSelection();
+        closeButton.setPadding(
+                18,
+                17,
+                18,
+                17
+        );
 
-                            } else {
-
-                                stopTranslator();
-                            }
-                        }
+        menuView.addView(
+                selectButton,
+                new LinearLayout.LayoutParams(
+                        240,
+                        LinearLayout.LayoutParams
+                                .WRAP_CONTENT
                 )
-                .show();
+        );
+
+        menuView.addView(
+                closeButton,
+                new LinearLayout.LayoutParams(
+                        240,
+                        LinearLayout.LayoutParams
+                                .WRAP_CONTENT
+                )
+        );
+
+        selectButton.setOnClickListener(
+                view -> {
+
+                    hideMenu();
+
+                    startSelection();
+                }
+        );
+
+        closeButton.setOnClickListener(
+                view -> {
+
+                    hideMenu();
+
+                    stopTranslator();
+                }
+        );
+
+        WindowManager.LayoutParams params =
+                new WindowManager.LayoutParams(
+                        260,
+                        WindowManager.LayoutParams
+                                .WRAP_CONTENT,
+                        getOverlayType(),
+                        WindowManager.LayoutParams
+                                .FLAG_NOT_FOCUSABLE,
+                        PixelFormat.TRANSLUCENT
+                );
+
+        params.gravity =
+                Gravity.TOP |
+                        Gravity.END;
+
+        params.x = 20;
+
+        params.y = 315;
+
+        try {
+
+            windowManager.addView(
+                    menuView,
+                    params
+            );
+
+        } catch (Exception error) {
+
+            menuView = null;
+
+            ErrorLogger.save(
+                    this,
+                    error
+            );
+        }
+    }
+
+    private void hideMenu() {
+
+        if (menuView != null) {
+
+            try {
+
+                windowManager.removeView(
+                        menuView
+                );
+
+            } catch (Exception ignored) {
+            }
+
+            menuView = null;
+        }
     }
 
     private void createTranslationView() {
@@ -352,7 +516,9 @@ public class ScreenCaptureService extends Service {
         translationView =
                 new TextView(this);
 
-        translationView.setTextSize(14);
+        translationView.setTextSize(
+                14
+        );
 
         translationView.setTextColor(
                 android.graphics.Color.WHITE
@@ -369,7 +535,9 @@ public class ScreenCaptureService extends Service {
                 5
         );
 
-        translationView.setSingleLine(false);
+        translationView.setSingleLine(
+                false
+        );
 
         translationView.setBackground(
                 createRoundBackground(
@@ -426,9 +594,13 @@ public class ScreenCaptureService extends Service {
                 new android.graphics.drawable
                         .GradientDrawable();
 
-        drawable.setColor(color);
+        drawable.setColor(
+                color
+        );
 
-        drawable.setCornerRadius(radius);
+        drawable.setCornerRadius(
+                radius
+        );
 
         return drawable;
     }
@@ -469,13 +641,17 @@ public class ScreenCaptureService extends Service {
                                 bottom
                         ) -> {
 
-                            selectedLeft = left;
+                            selectedLeft =
+                                    left;
 
-                            selectedTop = top;
+                            selectedTop =
+                                    top;
 
-                            selectedRight = right;
+                            selectedRight =
+                                    right;
 
-                            selectedBottom = bottom;
+                            selectedBottom =
+                                    bottom;
 
                             hasSelection = true;
 
@@ -525,6 +701,10 @@ public class ScreenCaptureService extends Service {
                     this,
                     error
             );
+
+            selectionView = null;
+
+            selecting = false;
         }
     }
 
@@ -566,7 +746,9 @@ public class ScreenCaptureService extends Service {
         try {
 
             Bitmap bitmap =
-                    imageToBitmap(image);
+                    imageToBitmap(
+                            image
+                    );
 
             if (bitmap == null) {
 
@@ -632,7 +814,12 @@ public class ScreenCaptureService extends Service {
                                                 .getText()
                                                 .trim();
 
-                                cropped.recycle();
+                                try {
+
+                                    cropped.recycle();
+
+                                } catch (Exception ignored) {
+                                }
 
                                 if (text.isEmpty()) {
 
@@ -662,7 +849,12 @@ public class ScreenCaptureService extends Service {
                     .addOnFailureListener(
                             error -> {
 
-                                cropped.recycle();
+                                try {
+
+                                    cropped.recycle();
+
+                                } catch (Exception ignored) {
+                                }
 
                                 ErrorLogger.save(
                                         this,
@@ -778,13 +970,16 @@ public class ScreenCaptureService extends Service {
                         translationView
                                 .getLayoutParams();
 
-        params.x = selectedLeft;
+        params.x =
+                selectedLeft;
 
-        params.y = selectedBottom + 8;
+        params.y =
+                selectedBottom + 8;
 
         if (params.y < 0) {
 
-            params.y = selectedTop;
+            params.y =
+                    selectedTop;
         }
 
         try {
@@ -882,6 +1077,8 @@ public class ScreenCaptureService extends Service {
     }
 
     private void stopTranslator() {
+
+        hideMenu();
 
         running = false;
 
@@ -1039,6 +1236,8 @@ public class ScreenCaptureService extends Service {
                 scanRunnable
         );
 
+        hideMenu();
+
         hideTranslation();
 
         removeSelectionView();
@@ -1084,4 +1283,4 @@ public class ScreenCaptureService extends Service {
 
         return null;
     }
-        }
+                }
