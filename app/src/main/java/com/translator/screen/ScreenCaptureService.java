@@ -26,9 +26,9 @@ import androidx.annotation.Nullable;
 
 import com.google.mlkit.common.model.DownloadConditions;
 import com.google.mlkit.nl.translate.TranslateLanguage;
-import com.google.mlkit.nl.translate.Translation;
-import com.google.mlkit.nl.translate.Translator;
-import com.google.mlkit.nl.translate.TranslatorOptions;
+import com.google.mlkit.translate.Translation;
+import com.google.mlkit.translate.Translator;
+import com.google.mlkit.translate.TranslatorOptions;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
@@ -67,9 +67,7 @@ public class ScreenCaptureService extends Service {
     private SelectionOverlayView selectionView;
 
     private final Handler handler =
-            new Handler(
-                    Looper.getMainLooper()
-            );
+            new Handler(Looper.getMainLooper());
 
     private Translator translator;
 
@@ -130,8 +128,6 @@ public class ScreenCaptureService extends Service {
 
         createNotificationChannel();
 
-        startForegroundServiceProperly();
-
         windowManager =
                 (WindowManager)
                         getSystemService(
@@ -180,7 +176,7 @@ public class ScreenCaptureService extends Service {
         createTranslationView();
     }
 
-    private void startForegroundServiceProperly() {
+    private void startForegroundForProjection() {
 
         Notification notification =
                 createNotification();
@@ -211,6 +207,8 @@ public class ScreenCaptureService extends Service {
                     this,
                     error
             );
+
+            throw error;
         }
     }
 
@@ -226,10 +224,6 @@ public class ScreenCaptureService extends Service {
                             NotificationManager
                                     .IMPORTANCE_LOW
                     );
-
-            channel.setDescription(
-                    "تشغيل مترجم الشاشة"
-            );
 
             NotificationManager manager =
                     getSystemService(
@@ -258,7 +252,7 @@ public class ScreenCaptureService extends Service {
                             "مترجم الشاشة"
                     )
                     .setContentText(
-                            "المترجم يعمل"
+                            "ترجمة الشاشة تعمل"
                     )
                     .setSmallIcon(
                             android.R.drawable
@@ -275,7 +269,7 @@ public class ScreenCaptureService extends Service {
                         "مترجم الشاشة"
                 )
                 .setContentText(
-                        "المترجم يعمل"
+                        "ترجمة الشاشة تعمل"
                 )
                 .setSmallIcon(
                         android.R.drawable
@@ -385,8 +379,6 @@ public class ScreenCaptureService extends Service {
                 )
         );
 
-        menuView.setElevation(12);
-
         TextView selectButton =
                 new TextView(this);
 
@@ -397,11 +389,7 @@ public class ScreenCaptureService extends Service {
         selectButton.setTextSize(15);
 
         selectButton.setTextColor(
-                android.graphics.Color.rgb(
-                        30,
-                        30,
-                        30
-                )
+                android.graphics.Color.DKGRAY
         );
 
         selectButton.setGravity(
@@ -641,6 +629,11 @@ public class ScreenCaptureService extends Service {
             return;
         }
 
+        if (!projectionReady) {
+
+            return;
+        }
+
         selecting = true;
 
         hideTranslation();
@@ -655,28 +648,21 @@ public class ScreenCaptureService extends Service {
                                 bottom
                         ) -> {
 
-                            selectedLeft =
-                                    left;
+                            selectedLeft = left;
 
-                            selectedTop =
-                                    top;
+                            selectedTop = top;
 
-                            selectedRight =
-                                    right;
+                            selectedRight = right;
 
-                            selectedBottom =
-                                    bottom;
+                            selectedBottom = bottom;
 
-                            hasSelection =
-                                    true;
+                            hasSelection = true;
 
-                            selecting =
-                                    false;
+                            selecting = false;
 
                             removeSelectionView();
 
-                            lastEnglishText =
-                                    "";
+                            lastEnglishText = "";
 
                             hideTranslation();
 
@@ -746,6 +732,7 @@ public class ScreenCaptureService extends Service {
 
         if (mediaProjection == null ||
                 imageReader == null ||
+                !projectionReady ||
                 !hasSelection) {
 
             return;
@@ -763,9 +750,7 @@ public class ScreenCaptureService extends Service {
         try {
 
             Bitmap bitmap =
-                    imageToBitmap(
-                            image
-                    );
+                    imageToBitmap(image);
 
             if (bitmap == null) {
 
@@ -840,8 +825,7 @@ public class ScreenCaptureService extends Service {
 
                                 if (text.isEmpty()) {
 
-                                    lastEnglishText =
-                                            "";
+                                    lastEnglishText = "";
 
                                     hideTranslation();
 
@@ -993,12 +977,6 @@ public class ScreenCaptureService extends Service {
         params.y =
                 selectedBottom + 8;
 
-        if (params.y < 0) {
-
-            params.y =
-                    selectedTop;
-        }
-
         try {
 
             windowManager.updateViewLayout(
@@ -1040,12 +1018,10 @@ public class ScreenCaptureService extends Service {
         buffer.rewind();
 
         int pixelStride =
-                planes[0]
-                        .getPixelStride();
+                planes[0].getPixelStride();
 
         int rowStride =
-                planes[0]
-                        .getRowStride();
+                planes[0].getRowStride();
 
         if (pixelStride <= 0) {
 
@@ -1093,61 +1069,6 @@ public class ScreenCaptureService extends Service {
         return bitmap;
     }
 
-    private void stopTranslator() {
-
-        hideMenu();
-
-        running = false;
-
-        hasSelection = false;
-
-        selecting = false;
-
-        projectionReady = false;
-
-        lastEnglishText = "";
-
-        translatingTexts.clear();
-
-        handler.removeCallbacks(
-                scanRunnable
-        );
-
-        hideTranslation();
-
-        removeSelectionView();
-
-        if (floatingButton != null) {
-
-            try {
-
-                windowManager.removeView(
-                        floatingButton
-                );
-
-            } catch (Exception ignored) {
-            }
-
-            floatingButton = null;
-        }
-
-        if (translationView != null) {
-
-            try {
-
-                windowManager.removeView(
-                        translationView
-                );
-
-            } catch (Exception ignored) {
-            }
-
-            translationView = null;
-        }
-
-        stopSelf();
-    }
-
     @Override
     public int onStartCommand(
             Intent intent,
@@ -1158,6 +1079,8 @@ public class ScreenCaptureService extends Service {
         try {
 
             if (intent == null) {
+
+                stopSelf();
 
                 return START_NOT_STICKY;
             }
@@ -1193,9 +1116,11 @@ public class ScreenCaptureService extends Service {
                 ErrorLogger.save(
                         this,
                         new Exception(
-                                "MediaProjection permission data is missing"
+                                "MediaProjection permission data missing"
                         )
                 );
+
+                stopSelf();
 
                 return START_NOT_STICKY;
             }
@@ -1208,12 +1133,7 @@ public class ScreenCaptureService extends Service {
 
             if (manager == null) {
 
-                ErrorLogger.save(
-                        this,
-                        new Exception(
-                                "MediaProjectionManager is null"
-                        )
-                );
+                stopSelf();
 
                 return START_NOT_STICKY;
             }
@@ -1233,8 +1153,12 @@ public class ScreenCaptureService extends Service {
                         )
                 );
 
+                stopSelf();
+
                 return START_NOT_STICKY;
             }
+
+            startForegroundForProjection();
 
             android.util.DisplayMetrics metrics =
                     getResources()
@@ -1276,9 +1200,90 @@ public class ScreenCaptureService extends Service {
                     this,
                     error
             );
+
+            stopSelf();
         }
 
         return START_NOT_STICKY;
+    }
+
+    private void stopTranslator() {
+
+        hideMenu();
+
+        running = false;
+
+        projectionReady = false;
+
+        hasSelection = false;
+
+        selecting = false;
+
+        lastEnglishText = "";
+
+        translatingTexts.clear();
+
+        handler.removeCallbacks(
+                scanRunnable
+        );
+
+        hideTranslation();
+
+        removeSelectionView();
+
+        if (floatingButton != null) {
+
+            try {
+
+                windowManager.removeView(
+                        floatingButton
+                );
+
+            } catch (Exception ignored) {
+            }
+
+            floatingButton = null;
+        }
+
+        if (translationView != null) {
+
+            try {
+
+                windowManager.removeView(
+                        translationView
+                );
+
+            } catch (Exception ignored) {
+            }
+
+            translationView = null;
+        }
+
+        if (imageReader != null) {
+
+            try {
+
+                imageReader.close();
+
+            } catch (Exception ignored) {
+            }
+
+            imageReader = null;
+        }
+
+        if (mediaProjection != null) {
+
+            try {
+
+                mediaProjection.stop();
+
+            } catch (Exception ignored) {
+            }
+
+            mediaProjection = null;
+        }
+
+        stopSelf();
     }
 
     @Override
