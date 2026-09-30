@@ -5,8 +5,10 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.view.View;
+import android.graphics.Color;
+import android.view.Gravity;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
@@ -21,36 +23,123 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setContentView(
-                R.layout.activity_main
-        );
+        try {
 
-        statusText =
-                findViewById(R.id.statusText);
+            setContentView(R.layout.activity_main);
 
-        startButton =
-                findViewById(R.id.startButton);
+            statusText =
+                    findViewById(R.id.statusText);
 
-        privacyButton =
-                findViewById(R.id.privacyButton);
+            startButton =
+                    findViewById(R.id.startButton);
 
-        startButton.setOnClickListener(
-                view -> startTranslator()
-        );
+            privacyButton =
+                    findViewById(R.id.privacyButton);
 
-        privacyButton.setOnClickListener(
-                view -> {
+            if (startButton != null) {
 
-                    Intent intent =
-                            new Intent(
-                                    MainActivity.this,
-                                    PrivacyPolicyActivity.class
-                            );
+                startButton.setOnClickListener(
+                        view -> startTranslator()
+                );
+            }
 
-                    startActivity(intent);
-                }
-        );
+            if (privacyButton != null) {
+
+                privacyButton.setOnClickListener(
+                        view -> {
+
+                            Intent intent =
+                                    new Intent(
+                                            MainActivity.this,
+                                            PrivacyPolicyActivity.class
+                                    );
+
+                            startActivity(intent);
+                        }
+                );
+            }
+
+        } catch (Throwable error) {
+
+            showStartupError(error);
+        }
     }
+
+
+    private void showStartupError(Throwable error) {
+
+        LinearLayout layout =
+                new LinearLayout(this);
+
+        layout.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        layout.setGravity(
+                Gravity.CENTER
+        );
+
+        layout.setPadding(
+                30,
+                30,
+                30,
+                30
+        );
+
+        layout.setBackgroundColor(
+                Color.rgb(5, 11, 24)
+        );
+
+
+        TextView title =
+                new TextView(this);
+
+        title.setText(
+                "حدث خطأ عند تشغيل التطبيق"
+        );
+
+        title.setTextColor(
+                Color.WHITE
+        );
+
+        title.setTextSize(22);
+
+        title.setGravity(
+                Gravity.CENTER
+        );
+
+
+        TextView details =
+                new TextView(this);
+
+        details.setText(
+                "\n\n" +
+                error.getClass().getName() +
+                "\n\n" +
+                String.valueOf(
+                        error.getMessage()
+                )
+        );
+
+        details.setTextColor(
+                Color.rgb(255, 120, 120)
+        );
+
+        details.setTextSize(13);
+
+        details.setGravity(
+                Gravity.CENTER
+        );
+
+
+        layout.addView(title);
+
+        layout.addView(details);
+
+
+        setContentView(layout);
+    }
+
 
     private void startTranslator() {
 
@@ -58,9 +147,12 @@ public class MainActivity extends Activity {
 
             if (!Settings.canDrawOverlays(this)) {
 
-                statusText.setText(
-                        "اسمح للتطبيق بالظهور فوق التطبيقات"
-                );
+                if (statusText != null) {
+
+                    statusText.setText(
+                            "اسمح للتطبيق بالظهور فوق التطبيقات"
+                    );
+                }
 
                 Intent intent =
                         new Intent(
@@ -80,19 +172,26 @@ public class MainActivity extends Activity {
 
         } catch (Throwable error) {
 
-            statusText.setText(
-                    "حدث خطأ أثناء تشغيل المترجم"
-            );
+            if (statusText != null) {
+
+                statusText.setText(
+                        "حدث خطأ أثناء تشغيل المترجم"
+                );
+            }
         }
     }
+
 
     private void requestScreenCapture() {
 
         try {
 
-            statusText.setText(
-                    "اختر السماح بالتقاط الشاشة..."
-            );
+            if (statusText != null) {
+
+                statusText.setText(
+                        "اختر السماح بالتقاط الشاشة..."
+                );
+            }
 
             android.media.projection.MediaProjectionManager manager =
                     (android.media.projection.MediaProjectionManager)
@@ -110,11 +209,15 @@ public class MainActivity extends Activity {
 
         } catch (Throwable error) {
 
-            statusText.setText(
-                    "تعذر طلب إذن التقاط الشاشة"
-            );
+            if (statusText != null) {
+
+                statusText.setText(
+                        "تعذر طلب إذن التقاط الشاشة"
+                );
+            }
         }
     }
+
 
     @Override
     protected void onActivityResult(
@@ -138,9 +241,12 @@ public class MainActivity extends Activity {
         if (resultCode != RESULT_OK ||
                 data == null) {
 
-            statusText.setText(
-                    "تم إلغاء إذن التقاط الشاشة"
-            );
+            if (statusText != null) {
+
+                statusText.setText(
+                        "تم إلغاء إذن التقاط الشاشة"
+                );
+            }
 
             return;
         }
@@ -176,19 +282,28 @@ public class MainActivity extends Activity {
                 );
             }
 
-            statusText.setText(
-                    "مترجم الشاشة يعمل الآن"
-            );
+            if (statusText != null) {
 
-            startButton.setText(
-                    "المترجم يعمل"
-            );
+                statusText.setText(
+                        "مترجم الشاشة يعمل الآن"
+                );
+            }
+
+            if (startButton != null) {
+
+                startButton.setText(
+                        "المترجم يعمل"
+                );
+            }
 
         } catch (Throwable error) {
 
-            statusText.setText(
-                    "تعذر تشغيل مترجم الشاشة"
-            );
+            if (statusText != null) {
+
+                statusText.setText(
+                        "تعذر تشغيل مترجم الشاشة"
+                );
+            }
         }
     }
 }
