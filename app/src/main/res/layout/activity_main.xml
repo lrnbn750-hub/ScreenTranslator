@@ -5,35 +5,38 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="#F5F7FB">
+    android:background="#F2F2F7">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="18dp"
+        android:paddingBottom="28dp">
 
         <!-- Header -->
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginTop="18dp">
+            android:orientation="horizontal"
+            android:layout_marginTop="10dp">
 
             <LinearLayout
-                android:layout_width="54dp"
-                android:layout_height="54dp"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
                 android:gravity="center"
-                android:background="#2563EB">
+                android:background="@drawable/icon_background">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="文"
                     android:textColor="#FFFFFF"
-                    android:textSize="27sp"
+                    android:textSize="25sp"
                     android:textStyle="bold"/>
 
             </LinearLayout>
@@ -43,23 +46,23 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="14dp">
+                android:layout_marginStart="13dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="مترجم الشاشة"
-                    android:textColor="#111827"
+                    android:textColor="#111111"
                     android:textSize="24sp"
                     android:textStyle="bold"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="ترجمة فورية من الشاشة"
-                    android:textColor="#6B7280"
+                    android:text="ترجمة الشاشة بشكل فوري"
+                    android:textColor="#8E8E93"
                     android:textSize="14sp"
-                    android:layout_marginTop="3dp"/>
+                    android:layout_marginTop="2dp"/>
 
             </LinearLayout>
 
@@ -72,78 +75,75 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#FFFFFF"
-            android:padding="22dp"
-            android:layout_marginTop="24dp">
+            android:background="@drawable/card_background"
+            android:padding="20dp"
+            android:layout_marginTop="25dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="جاهز للترجمة"
-                android:textColor="#111827"
+                android:text="ترجمة الشاشة"
+                android:textColor="#111111"
                 android:textSize="20sp"
                 android:textStyle="bold"/>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="حدد أي منطقة تحتوي على نص إنجليزي، وسنقوم بترجمته إلى العربية."
-                android:textColor="#6B7280"
+                android:text="ترجم النصوص الإنجليزية الظاهرة على الشاشة إلى العربية."
+                android:textColor="#8E8E93"
                 android:textSize="14sp"
-                android:lineSpacingExtra="4dp"
-                android:layout_marginTop="7dp"/>
+                android:lineSpacingExtra="3dp"
+                android:layout_marginTop="6dp"/>
 
 
-            <!-- Language Row -->
+            <!-- Language -->
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="58dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginTop="22dp">
+                android:background="#F2F2F7"
+                android:layout_marginTop="20dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
 
                 <TextView
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
+                    android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:gravity="center_vertical"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp"
                     android:text="🇬🇧  English"
-                    android:textColor="#111827"
+                    android:textColor="#111111"
                     android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:background="#F3F6FA"/>
+                    android:textStyle="bold"/>
 
                 <TextView
-                    android:layout_width="38dp"
-                    android:layout_height="48dp"
+                    android:layout_width="40dp"
+                    android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="→"
-                    android:textColor="#2563EB"
-                    android:textSize="20sp"
+                    android:textColor="#007AFF"
+                    android:textSize="21sp"
                     android:textStyle="bold"/>
 
                 <TextView
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
+                    android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:gravity="center_vertical"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp"
                     android:text="العربية  🇸🇦"
-                    android:textColor="#111827"
+                    android:textColor="#111111"
                     android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:background="#F3F6FA"/>
+                    android:textStyle="bold"/>
 
             </LinearLayout>
 
         </LinearLayout>
 
 
-        <!-- Start Button -->
+        <!-- Start -->
 
         <Button
             android:id="@+id/startButton"
@@ -153,27 +153,28 @@
             android:textColor="#FFFFFF"
             android:textSize="17sp"
             android:textStyle="bold"
-            android:backgroundTint="#2563EB"
-            android:layout_marginTop="18dp"/>
+            android:backgroundTint="#007AFF"
+            android:layout_marginTop="16dp"/>
 
 
         <!-- Status -->
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="58dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:background="#FFFFFF"
-            android:padding="16dp"
-            android:layout_marginTop="14dp">
+            android:background="@drawable/card_background"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:layout_marginTop="12dp">
 
             <TextView
-                android:layout_width="10dp"
-                android:layout_height="10dp"
+                android:layout_width="9dp"
+                android:layout_height="9dp"
                 android:text="●"
-                android:textColor="#16A34A"
-                android:textSize="12sp"/>
+                android:textColor="#34C759"
+                android:textSize="11sp"/>
 
             <TextView
                 android:id="@+id/statusText"
@@ -181,40 +182,9 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="جاهز للترجمة"
-                android:textColor="#374151"
+                android:textColor="#3C3C43"
                 android:textSize="14sp"
                 android:layout_marginStart="10dp"/>
-
-        </LinearLayout>
-
-
-        <!-- Tools -->
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="12dp">
-
-            <Button
-                android:id="@+id/errorButton"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:text="سجل الأخطاء"
-                android:textSize="13sp"/>
-
-            <Space
-                android:layout_width="8dp"
-                android:layout_height="1dp"/>
-
-            <Button
-                android:id="@+id/clearErrorButton"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:text="مسح الأخطاء"
-                android:textSize="13sp"/>
 
         </LinearLayout>
 
@@ -224,36 +194,24 @@
         <Button
             android:id="@+id/privacyButton"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="50dp"
             android:text="سياسة الخصوصية"
+            android:textColor="#007AFF"
             android:textSize="14sp"
-            android:layout_marginTop="10dp"/>
+            android:backgroundTint="#FFFFFF"
+            android:layout_marginTop="12dp"/>
 
 
-        <!-- Error -->
-
-        <TextView
-            android:id="@+id/errorText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#B91C1C"
-            android:textSize="12sp"
-            android:background="#FFF1F2"
-            android:padding="14dp"
-            android:layout_marginTop="12dp"
-            android:textIsSelectable="true"
-            android:visibility="visible"/>
-
+        <!-- Footer -->
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="الترجمة تتم محلياً بعد تنزيل نماذج اللغة"
-            android:textColor="#9CA3AF"
+            android:text="تعمل الترجمة محلياً بعد تنزيل نماذج اللغة"
+            android:textColor="#AEAEB2"
             android:textSize="11sp"
             android:gravity="center"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="20dp"/>
+            android:layout_marginTop="24dp"/>
 
     </LinearLayout>
 
