@@ -52,7 +52,7 @@ public class ScreenCaptureService extends Service {
     /*
      * فحص الشاشة كل ثانيتين
      */
-    private static final long SCAN_INTERVAL = 2000L;
+    private static final long SCAN_INTERVAL = 350L;
 
     private WindowManager windowManager;
 
