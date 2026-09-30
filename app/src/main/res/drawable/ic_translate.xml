@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <!-- Blue translation tile -->
+
+    <path
+        android:fillColor="#1677FF"
+        android:pathData="M12,8 L44,8 Q50,8 50,14 L50,46 Q50,52 44,52 L12,52 Q6,52 6,46 L6,14 Q6,8 12,8 Z"/>
+
+    <!-- Arabic tile -->
+
+    <path
+        android:fillColor="#EAF4FF"
+        android:pathData="M52,44 L84,44 Q90,44 90,50 L90,82 Q90,88 84,88 L52,88 Q46,88 46,82 L46,50 Q46,44 52,44 Z"/>
+
+    <!-- English A -->
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,17 L17,43 L23,43 L25,38 L34,38 L36,43 L42,43 L31,17 Z M27,33 L30,25 L33,33 Z"/>
+
+    <!-- Arabic ع -->
+
+    <path
+        android:fillColor="#1267D6"
+        android:pathData="M67,53 C61,53 57,57 57,63 C57,69 61,72 67,72 C70,72 72,70 73,67 L69,65 C68,67 67,68 65,68 C63,68 62,66 62,63 C62,60 64,58 67,58 C70,58 72,60 73,63 L78,63 C77,57 73,53 67,53 Z"/>
+
+    <!-- Translation arrows -->
+
+    <path
+        android:fillColor="#58B8FF"
+        android:pathData="M37,53 L51,53 L51,49 L59,56 L51,63 L51,59 L37,59 Z"/>
+
+    <path
+        android:fillColor="#8A5CFF"
+        android:pathData="M59,39 L45,39 L45,35 L37,42 L45,49 L45,45 L59,45 Z"/>
+
+</vector>
