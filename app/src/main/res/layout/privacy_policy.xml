@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F7F8FA">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="سياسة الخصوصية"
+            android:textColor="#111827"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="مترجم الشاشة"
+            android:textColor="#2563EB"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="آخر تحديث: 30 سبتمبر 2026"
+            android:textColor="#6B7280"
+            android:textSize="13sp"
+            android:layout_marginTop="6dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="يتيح تطبيق مترجم الشاشة ترجمة النصوص الظاهرة على شاشة الجهاز من الإنجليزية إلى العربية."
+            android:textColor="#374151"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginTop="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. الوصول إلى الشاشة"
+            android:textColor="#111827"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:layout_marginTop="28dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="عند تشغيل ميزة ترجمة الشاشة، يطلب التطبيق إذن التقاط الشاشة من Android. يستخدم هذا الإذن فقط لقراءة المنطقة التي يحددها المستخدم واستخراج النص منها لغرض الترجمة."
+            android:textColor="#374151"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginTop="10dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2. معالجة النصوص"
+            android:textColor="#111827"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:layout_marginTop="28dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="تتم معالجة منطقة الشاشة المحددة واستخراج النص باستخدام OCR على الجهاز. تتم ترجمة النص باستخدام نموذج الترجمة الموجود على الجهاز."
+            android:textColor="#374151"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginTop="10dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="3. الاتصال بالإنترنت"
+            android:textColor="#111827"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:layout_marginTop="28dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="قد يحتاج التطبيق إلى اتصال بالإنترنت عند الاستخدام الأول لتنزيل نماذج اللغة المطلوبة. بعد تنزيلها، يمكن استخدام الترجمة دون اتصال بالإنترنت."
+            android:textColor="#374151"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginTop="10dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="4. جمع البيانات"
+            android:textColor="#111827"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:layout_marginTop="28dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="لا يتطلب التطبيق إنشاء حساب لاستخدام وظيفة ترجمة الشاشة. لا نبيع بيانات المستخدمين ولا نستخدم محتوى الشاشة لأغراض إعلانية."
+            android:textColor="#374151"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginTop="10dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="5. مشاركة البيانات"
+            android:textColor="#111827"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:layout_marginTop="28dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="لا يشارك التطبيق صور الشاشة أو النصوص المستخرجة مع خوادمنا لأغراض التخزين أو الإعلانات."
+            android:textColor="#374151"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginTop="10dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="6. سجل الأخطاء"
+            android:textColor="#111827"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:layout_marginTop="28dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="قد يحتفظ التطبيق محلياً بمعلومات تقنية عن آخر خطأ للمساعدة في تشخيص الأعطال. لا يتم إرسال سجل الأخطاء إلى خادم خارجي بواسطة التطبيق."
+            android:textColor="#374151"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginTop="10dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="7. حذف البيانات"
+            android:textColor="#111827"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:layout_marginTop="28dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="يمكن للمستخدم حذف البيانات المحلية للتطبيق من إعدادات Android عبر مسح بيانات التطبيق."
+            android:textColor="#374151"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginTop="10dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="8. التواصل"
+            android:textColor="#111827"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:layout_marginTop="28dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="للاستفسارات المتعلقة بالخصوصية، يمكن التواصل مع مطور التطبيق عبر البريد الإلكتروني المنشور في صفحة التطبيق على Google Play."
+            android:textColor="#374151"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="30dp"/>
+
+    </LinearLayout>
+
+</ScrollView>
