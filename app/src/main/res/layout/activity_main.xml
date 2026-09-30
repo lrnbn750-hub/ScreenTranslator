@@ -97,7 +97,8 @@
                 android:background="#F2F2F7"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
-                android:layout_marginTop="20dp">
+                android:layout_marginTop="20dp"
+                android:layoutDirection="ltr">
 
                 <TextView
                     android:layout_width="0dp"
@@ -126,7 +127,8 @@
                     android:text="العربية  🇸🇦"
                     android:textColor="#111111"
                     android:textSize="15sp"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold"
+                    android:textDirection="rtl"/>
 
             </LinearLayout>
 
