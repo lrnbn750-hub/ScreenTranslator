@@ -5,10 +5,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.graphics.Color;
-import android.view.Gravity;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
@@ -17,7 +14,7 @@ public class MainActivity extends Activity {
 
     private TextView statusText;
     private Button startButton;
-    private Button privacyButton;
+    private TextView privacyButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,28 +33,22 @@ public class MainActivity extends Activity {
             privacyButton =
                     findViewById(R.id.privacyButton);
 
-            if (startButton != null) {
+            startButton.setOnClickListener(
+                    view -> startTranslator()
+            );
 
-                startButton.setOnClickListener(
-                        view -> startTranslator()
-                );
-            }
+            privacyButton.setOnClickListener(
+                    view -> {
 
-            if (privacyButton != null) {
+                        Intent intent =
+                                new Intent(
+                                        MainActivity.this,
+                                        PrivacyPolicyActivity.class
+                                );
 
-                privacyButton.setOnClickListener(
-                        view -> {
-
-                            Intent intent =
-                                    new Intent(
-                                            MainActivity.this,
-                                            PrivacyPolicyActivity.class
-                                    );
-
-                            startActivity(intent);
-                        }
-                );
-            }
+                        startActivity(intent);
+                    }
+            );
 
         } catch (Throwable error) {
 
@@ -65,55 +56,13 @@ public class MainActivity extends Activity {
         }
     }
 
-
     private void showStartupError(Throwable error) {
 
-        LinearLayout layout =
-                new LinearLayout(this);
-
-        layout.setOrientation(
-                LinearLayout.VERTICAL
-        );
-
-        layout.setGravity(
-                Gravity.CENTER
-        );
-
-        layout.setPadding(
-                30,
-                30,
-                30,
-                30
-        );
-
-        layout.setBackgroundColor(
-                Color.rgb(5, 11, 24)
-        );
-
-
-        TextView title =
+        TextView errorText =
                 new TextView(this);
 
-        title.setText(
-                "حدث خطأ عند تشغيل التطبيق"
-        );
-
-        title.setTextColor(
-                Color.WHITE
-        );
-
-        title.setTextSize(22);
-
-        title.setGravity(
-                Gravity.CENTER
-        );
-
-
-        TextView details =
-                new TextView(this);
-
-        details.setText(
-                "\n\n" +
+        errorText.setText(
+                "حدث خطأ عند تشغيل التطبيق\n\n" +
                 error.getClass().getName() +
                 "\n\n" +
                 String.valueOf(
@@ -121,25 +70,33 @@ public class MainActivity extends Activity {
                 )
         );
 
-        details.setTextColor(
-                Color.rgb(255, 120, 120)
+        errorText.setTextColor(
+                android.graphics.Color.WHITE
         );
 
-        details.setTextSize(13);
+        errorText.setTextSize(15);
 
-        details.setGravity(
-                Gravity.CENTER
+        errorText.setGravity(
+                android.view.Gravity.CENTER
         );
 
+        errorText.setPadding(
+                30,
+                30,
+                30,
+                30
+        );
 
-        layout.addView(title);
+        errorText.setBackgroundColor(
+                android.graphics.Color.rgb(
+                        5,
+                        11,
+                        24
+                )
+        );
 
-        layout.addView(details);
-
-
-        setContentView(layout);
+        setContentView(errorText);
     }
-
 
     private void startTranslator() {
 
@@ -147,12 +104,9 @@ public class MainActivity extends Activity {
 
             if (!Settings.canDrawOverlays(this)) {
 
-                if (statusText != null) {
-
-                    statusText.setText(
-                            "اسمح للتطبيق بالظهور فوق التطبيقات"
-                    );
-                }
+                statusText.setText(
+                        "اسمح للتطبيق بالظهور فوق التطبيقات"
+                );
 
                 Intent intent =
                         new Intent(
@@ -172,26 +126,19 @@ public class MainActivity extends Activity {
 
         } catch (Throwable error) {
 
-            if (statusText != null) {
-
-                statusText.setText(
-                        "حدث خطأ أثناء تشغيل المترجم"
-                );
-            }
+            statusText.setText(
+                    "حدث خطأ أثناء تشغيل المترجم"
+            );
         }
     }
-
 
     private void requestScreenCapture() {
 
         try {
 
-            if (statusText != null) {
-
-                statusText.setText(
-                        "اختر السماح بالتقاط الشاشة..."
-                );
-            }
+            statusText.setText(
+                    "اختر السماح بالتقاط الشاشة..."
+            );
 
             android.media.projection.MediaProjectionManager manager =
                     (android.media.projection.MediaProjectionManager)
@@ -209,15 +156,11 @@ public class MainActivity extends Activity {
 
         } catch (Throwable error) {
 
-            if (statusText != null) {
-
-                statusText.setText(
-                        "تعذر طلب إذن التقاط الشاشة"
-                );
-            }
+            statusText.setText(
+                    "تعذر طلب إذن التقاط الشاشة"
+            );
         }
     }
-
 
     @Override
     protected void onActivityResult(
@@ -241,12 +184,9 @@ public class MainActivity extends Activity {
         if (resultCode != RESULT_OK ||
                 data == null) {
 
-            if (statusText != null) {
-
-                statusText.setText(
-                        "تم إلغاء إذن التقاط الشاشة"
-                );
-            }
+            statusText.setText(
+                    "تم إلغاء إذن التقاط الشاشة"
+            );
 
             return;
         }
@@ -282,28 +222,19 @@ public class MainActivity extends Activity {
                 );
             }
 
-            if (statusText != null) {
+            statusText.setText(
+                    "مترجم الشاشة يعمل الآن"
+            );
 
-                statusText.setText(
-                        "مترجم الشاشة يعمل الآن"
-                );
-            }
-
-            if (startButton != null) {
-
-                startButton.setText(
-                        "المترجم يعمل"
-                );
-            }
+            startButton.setText(
+                    "المترجم يعمل"
+            );
 
         } catch (Throwable error) {
 
-            if (statusText != null) {
-
-                statusText.setText(
-                        "تعذر تشغيل مترجم الشاشة"
-                );
-            }
+            statusText.setText(
+                    "تعذر تشغيل مترجم الشاشة"
+            );
         }
     }
-}
+        }
