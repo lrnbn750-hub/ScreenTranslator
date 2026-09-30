@@ -14,78 +14,28 @@ public class MainActivity extends Activity {
     private static final int SCREEN_CAPTURE_REQUEST = 1001;
 
     private TextView statusText;
-    private TextView errorText;
-
     private Button startButton;
-    private Button errorButton;
-    private Button clearErrorButton;
     private Button privacyButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        installCrashHandler();
-
         setContentView(
                 R.layout.activity_main
         );
 
         statusText =
-                findViewById(
-                        R.id.statusText
-                );
+                findViewById(R.id.statusText);
 
         startButton =
-                findViewById(
-                        R.id.startButton
-                );
-
-        errorText =
-                findViewById(
-                        R.id.errorText
-                );
-
-        errorButton =
-                findViewById(
-                        R.id.errorButton
-                );
-
-        clearErrorButton =
-                findViewById(
-                        R.id.clearErrorButton
-                );
+                findViewById(R.id.startButton);
 
         privacyButton =
-                findViewById(
-                        R.id.privacyButton
-                );
-
-        showSavedError();
+                findViewById(R.id.privacyButton);
 
         startButton.setOnClickListener(
                 view -> startTranslator()
-        );
-
-        errorButton.setOnClickListener(
-                view -> showSavedError()
-        );
-
-        clearErrorButton.setOnClickListener(
-                view -> {
-
-                    ErrorLogger.clear(
-                            this
-                    );
-
-                    errorText.setText(
-                            "لا توجد أخطاء محفوظة."
-                    );
-
-                    errorText.setVisibility(
-                            View.VISIBLE
-                    );
-                }
         );
 
         privacyButton.setOnClickListener(
@@ -99,57 +49,6 @@ public class MainActivity extends Activity {
 
                     startActivity(intent);
                 }
-        );
-    }
-
-    private void installCrashHandler() {
-
-        Thread.setDefaultUncaughtExceptionHandler(
-                (thread, throwable) -> {
-
-                    ErrorLogger.save(
-                            getApplicationContext(),
-                            throwable
-                    );
-
-                    android.os.Process
-                            .killProcess(
-                                    android.os.Process.myPid()
-                            );
-                }
-        );
-    }
-
-    private void showSavedError() {
-
-        String error =
-                ErrorLogger.get(this);
-
-        if (error == null ||
-                error.trim().isEmpty()) {
-
-            errorText.setText(
-                    "لا توجد أخطاء محفوظة."
-            );
-
-            errorText.setVisibility(
-                    View.VISIBLE
-            );
-
-            return;
-        }
-
-        errorText.setVisibility(
-                View.VISIBLE
-        );
-
-        errorText.setText(
-                "آخر خطأ:\n\n" +
-                        error
-        );
-
-        statusText.setText(
-                "تم العثور على خطأ سابق"
         );
     }
 
@@ -168,7 +67,7 @@ public class MainActivity extends Activity {
                                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                                 Uri.parse(
                                         "package:" +
-                                                getPackageName()
+                                        getPackageName()
                                 )
                         );
 
@@ -181,12 +80,9 @@ public class MainActivity extends Activity {
 
         } catch (Throwable error) {
 
-            ErrorLogger.save(
-                    this,
-                    error
+            statusText.setText(
+                    "حدث خطأ أثناء تشغيل المترجم"
             );
-
-            showSavedError();
         }
     }
 
@@ -214,12 +110,9 @@ public class MainActivity extends Activity {
 
         } catch (Throwable error) {
 
-            ErrorLogger.save(
-                    this,
-                    error
+            statusText.setText(
+                    "تعذر طلب إذن التقاط الشاشة"
             );
-
-            showSavedError();
         }
     }
 
@@ -293,12 +186,9 @@ public class MainActivity extends Activity {
 
         } catch (Throwable error) {
 
-            ErrorLogger.save(
-                    this,
-                    error
+            statusText.setText(
+                    "تعذر تشغيل مترجم الشاشة"
             );
-
-            showSavedError();
         }
     }
-    }
+}
