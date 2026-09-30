@@ -15,9 +15,11 @@ public class MainActivity extends Activity {
 
     private TextView statusText;
     private TextView errorText;
+
     private Button startButton;
     private Button errorButton;
     private Button clearErrorButton;
+    private Button privacyButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +56,11 @@ public class MainActivity extends Activity {
                         R.id.clearErrorButton
                 );
 
+        privacyButton =
+                findViewById(
+                        R.id.privacyButton
+                );
+
         showSavedError();
 
         startButton.setOnClickListener(
@@ -78,6 +85,19 @@ public class MainActivity extends Activity {
                     errorText.setVisibility(
                             View.VISIBLE
                     );
+                }
+        );
+
+        privacyButton.setOnClickListener(
+                view -> {
+
+                    Intent intent =
+                            new Intent(
+                                    MainActivity.this,
+                                    PrivacyPolicyActivity.class
+                            );
+
+                    startActivity(intent);
                 }
         );
     }
@@ -281,4 +301,4 @@ public class MainActivity extends Activity {
             showSavedError();
         }
     }
-}
+    }
