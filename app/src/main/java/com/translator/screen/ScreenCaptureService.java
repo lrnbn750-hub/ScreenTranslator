@@ -50,18 +50,18 @@ public class ScreenCaptureService extends Service {
     private static final int NOTIFICATION_ID = 77;
 
     /*
-     * فحص OCR كل 250 ملي ثانية.
+     * OCR كل 400 ملي ثانية.
      */
-    private static final long SCAN_INTERVAL = 250L;
+    private static final long SCAN_INTERVAL = 400L;
 
     /*
-     * إبقاء آخر ترجمة ظاهرة إذا اختفى النص
-     * من OCR للحظات.
+     * إبقاء الترجمة ظاهرة لمدة 1.5 ثانية
+     * إذا اختفى النص مؤقتًا من OCR.
      */
     private static final long TRANSLATION_HOLD_TIME = 1500L;
 
     /*
-     * ML Kit يحتاج منطقة لا تقل عن 32 × 32.
+     * أقل حجم للمنطقة.
      */
     private static final int MIN_CROP_SIZE = 32;
 
@@ -135,7 +135,7 @@ public class ScreenCaptureService extends Service {
 
     /*
      * رقم طلب الترجمة.
-     * يمنع ظهور نتيجة ترجمة قديمة.
+     * يمنع ظهور ترجمة قديمة بعد وصول نص جديد.
      */
     private long translationRequestId = 0L;
 
@@ -150,7 +150,7 @@ public class ScreenCaptureService extends Service {
             );
 
     /*
-     * فحص OCR.
+     * فحص OCR بشكل مستمر.
      */
     private final Runnable scanRunnable =
             new Runnable() {
@@ -175,7 +175,7 @@ public class ScreenCaptureService extends Service {
             };
 
     /*
-     * مراقبة إيقاف MediaProjection.
+     * مراقبة إيقاف التقاط الشاشة.
      */
     private final MediaProjection.Callback
             projectionCallback =
@@ -293,7 +293,7 @@ public class ScreenCaptureService extends Service {
     }
 
     /*
-     * إنشاء Notification Channel.
+     * Notification Channel.
      */
     private void createNotificationChannel() {
 
@@ -527,7 +527,7 @@ public class ScreenCaptureService extends Service {
     }
 
     /*
-     * قراءة آخر صورة من الشاشة.
+     * قراءة أحدث صورة من الشاشة.
      */
     private void readScreen(
             ImageReader reader
@@ -963,9 +963,6 @@ public class ScreenCaptureService extends Service {
                             selectedBottom =
                                     bottom;
 
-                            /*
-                             * منع المنطقة الصغيرة جدًا.
-                             */
                             if (selectedRight -
                                     selectedLeft <
                                     MIN_CROP_SIZE) {
@@ -1084,7 +1081,7 @@ public class ScreenCaptureService extends Service {
     }
 
     /*
-     * فحص المنطقة المحددة.
+     * فحص المنطقة المحددة بواسطة OCR.
      */
     private void scanSelectedArea() {
 
@@ -1095,7 +1092,7 @@ public class ScreenCaptureService extends Service {
         }
 
         /*
-         * منع تداخل عمليات OCR.
+         * لا نشغل OCR جديدًا قبل انتهاء القديم.
          */
         if (ocrProcessing) {
 
@@ -1209,8 +1206,8 @@ public class ScreenCaptureService extends Service {
                                                 .trim();
 
                                 /*
-                                 * إذا لم يجد OCR نصًا،
-                                 * لا نخفي الترجمة مباشرة.
+                                 * لا نخفي الترجمة مباشرة
+                                 * إذا اختفى النص لحظيًا.
                                  */
                                 if (text.isEmpty()) {
 
@@ -1219,14 +1216,10 @@ public class ScreenCaptureService extends Service {
                                     return;
                                 }
 
-                                /*
-                                 * وجد نصًا، لذلك نلغي
-                                 * مؤقت الإخفاء.
-                                 */
                                 cancelTranslationHide();
 
                                 /*
-                                 * إذا النص نفسه،
+                                 * نفس النص:
                                  * لا نعيد الترجمة.
                                  */
                                 if (text.equals(
@@ -1300,8 +1293,8 @@ public class ScreenCaptureService extends Service {
         }
 
         /*
-         * لا تعيد ترجمة نفس النص
-         * إذا كان قيد المعالجة.
+         * لا تعيد ترجمة نفس النص إذا كان
+         * قيد المعالجة.
          */
         if (text.equals(
                 translatingText
@@ -1317,7 +1310,8 @@ public class ScreenCaptureService extends Service {
                 ++translationRequestId;
 
         /*
-         * إذا النموذج جاهز، ترجم مباشرة.
+         * إذا النموذج جاهز،
+         * نترجم مباشرة.
          */
         if (translationModelReady) {
 
@@ -1329,9 +1323,6 @@ public class ScreenCaptureService extends Service {
             return;
         }
 
-        /*
-         * تجهيز النموذج إذا لم يكن جاهزًا.
-         */
         DownloadConditions conditions =
                 new DownloadConditions.Builder()
                         .build();
@@ -1364,7 +1355,7 @@ public class ScreenCaptureService extends Service {
     }
 
     /*
-     * تنفيذ الترجمة بعد جاهزية النموذج.
+     * تنفيذ الترجمة.
      */
     private void translateTextAfterModel(
             String text,
@@ -1379,7 +1370,7 @@ public class ScreenCaptureService extends Service {
                         translated -> {
 
                             /*
-                             * تجاهل نتيجة قديمة.
+                             * تجاهل نتيجة ترجمة قديمة.
                              */
                             if (requestId !=
                                     translationRequestId) {
@@ -1388,7 +1379,7 @@ public class ScreenCaptureService extends Service {
                             }
 
                             /*
-                             * تجاهل نتيجة نص قديم.
+                             * تجاهل نص قديم.
                              */
                             if (!text.equals(
                                     lastEnglishText
@@ -1419,7 +1410,7 @@ public class ScreenCaptureService extends Service {
     }
 
     /*
-     * إبقاء آخر ترجمة ظاهرة قليلًا.
+     * إبقاء آخر ترجمة ظاهرة لمدة 1.5 ثانية.
      */
     private void scheduleTranslationHide() {
 
@@ -1449,7 +1440,7 @@ public class ScreenCaptureService extends Service {
     }
 
     /*
-     * إلغاء مؤقت الإخفاء.
+     * إلغاء مؤقت إخفاء الترجمة.
      */
     private void cancelTranslationHide() {
 
@@ -1804,4 +1795,4 @@ public class ScreenCaptureService extends Service {
 
         return null;
     }
-}
+    }
