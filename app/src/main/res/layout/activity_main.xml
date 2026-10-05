@@ -4,453 +4,355 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
-    android:background="@drawable/bg_main">
+    android:background="#F7F9FC"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingStart="18dp"
-        android:paddingEnd="18dp"
-        android:paddingTop="22dp"
-        android:paddingBottom="22dp">
+        android:paddingStart="22dp"
+        android:paddingEnd="22dp"
+        android:paddingTop="32dp"
+        android:paddingBottom="28dp">
 
-        <!-- HEADER -->
+        <!-- Logo -->
+        <ImageView
+            android:id="@+id/appIcon"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:layout_gravity="center_horizontal"
+            android:contentDescription="شعار التطبيق"
+            android:src="@drawable/app_icon" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:layout_width="52dp"
-                android:layout_height="52dp"
-                android:src="@drawable/app_icon"
-                android:contentDescription="مترجم الشاشة"
-                android:scaleType="centerInside" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="end"
-                android:paddingEnd="12dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="مترجم الشاشة"
-                    android:textColor="#FFFFFF"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
-                    android:text="ترجمة فورية من الإنجليزية إلى العربية"
-                    android:textColor="#91A2C1"
-                    android:textSize="12sp" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-
-        <!-- MAIN CARD -->
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:background="@drawable/bg_card"
-            android:orientation="vertical"
-            android:padding="19dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="end"
-                android:text="ترجمة الشاشة"
-                android:textColor="#FFFFFF"
-                android:textSize="23sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="7dp"
-                android:gravity="end"
-                android:lineSpacingExtra="2dp"
-                android:text="حدد أي منطقة على الشاشة وسيتم استخراج النص وترجمته مباشرة."
-                android:textColor="#94A4C1"
-                android:textSize="13sp" />
-
-
-            <!-- LANGUAGE -->
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="17dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:layoutDirection="ltr">
-
-                <!-- ENGLISH -->
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:background="#17243B"
-                    android:gravity="center"
-                    android:text="English"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <!-- ARROW -->
-
-                <TextView
-                    android:layout_width="42dp"
-                    android:layout_height="48dp"
-                    android:gravity="center"
-                    android:text="→"
-                    android:textColor="#21E6A1"
-                    android:textSize="23sp"
-                    android:textStyle="bold" />
-
-                <!-- ARABIC -->
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:background="#17243B"
-                    android:gravity="center"
-                    android:text="العربية"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-            </LinearLayout>
-
-
-            <!-- START BUTTON -->
-
-            <Button
-                android:id="@+id/startButton"
-                android:layout_width="match_parent"
-                android:layout_height="55dp"
-                android:layout_marginTop="17dp"
-                android:background="@drawable/bg_button"
-                android:minHeight="0dp"
-                android:text="ابدأ ترجمة الشاشة"
-                android:textAllCaps="false"
-                android:textColor="#06111F"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-
-            <!-- STATUS -->
-
-            <TextView
-                android:id="@+id/statusText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:gravity="center"
-                android:text="جاهز للبدء"
-                android:textColor="#8799B8"
-                android:textSize="12sp" />
-
-        </LinearLayout>
-
-
-        <!-- FEATURES TITLE -->
-
+        <!-- Title -->
         <TextView
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:gravity="end"
-            android:text="المميزات"
-            android:textColor="#FFFFFF"
-            android:textSize="19sp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="18dp"
+            android:text="مترجم الشاشة"
+            android:textColor="#111827"
+            android:textSize="28sp"
             android:textStyle="bold" />
 
+        <!-- Subtitle -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="7dp"
+            android:text="ترجمة فورية للشاشة"
+            android:textColor="#6B7280"
+            android:textSize="15sp" />
 
-        <!-- FEATURE 1 -->
-
+        <!-- Language Card -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="72dp"
-            android:layout_marginTop="11dp"
+            android:layout_marginTop="28dp"
             android:background="@drawable/bg_card"
-            android:gravity="center_vertical"
+            android:gravity="center"
             android:orientation="horizontal"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp">
-
-            <ImageView
-                android:layout_width="43dp"
-                android:layout_height="43dp"
-                android:src="@drawable/ic_translate"
-                android:contentDescription="ترجمة"
-                android:padding="4dp" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:orientation="vertical"
-                android:paddingEnd="13dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ترجمة فورية"
-                    android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="English → العربية"
-                    android:textColor="#8294B2"
-                    android:textSize="11sp" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-
-        <!-- FEATURE 2 -->
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="72dp"
-            android:layout_marginTop="9dp"
-            android:background="@drawable/bg_card"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp">
-
-            <ImageView
-                android:layout_width="43dp"
-                android:layout_height="43dp"
-                android:src="@drawable/ic_image"
-                android:contentDescription="الصور"
-                android:padding="4dp" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:orientation="vertical"
-                android:paddingEnd="13dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ترجمة الصور"
-                    android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="استخراج النص من الصور"
-                    android:textColor="#8294B2"
-                    android:textSize="11sp" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-
-        <!-- FEATURE 3 -->
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="72dp"
-            android:layout_marginTop="9dp"
-            android:background="@drawable/bg_card"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp">
-
-            <ImageView
-                android:layout_width="43dp"
-                android:layout_height="43dp"
-                android:src="@drawable/ic_camera"
-                android:contentDescription="الكاميرا"
-                android:padding="4dp" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:orientation="vertical"
-                android:paddingEnd="13dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="التقاط الشاشة"
-                    android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="حدد المنطقة التي تريد ترجمتها"
-                    android:textColor="#8294B2"
-                    android:textSize="11sp" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-
-        <!-- FEATURE 4 -->
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="72dp"
-            android:layout_marginTop="9dp"
-            android:background="@drawable/bg_card"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp">
-
-            <ImageView
-                android:layout_width="43dp"
-                android:layout_height="43dp"
-                android:src="@drawable/ic_game"
-                android:contentDescription="الألعاب"
-                android:padding="4dp" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:orientation="vertical"
-                android:paddingEnd="13dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="مناسب للألعاب والتطبيقات"
-                    android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="ترجمة النصوص أثناء الاستخدام"
-                    android:textColor="#8294B2"
-                    android:textSize="11sp" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-
-        <!-- OFFLINE -->
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginTop="14dp"
-            android:background="#102927"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="13dp"
-            android:paddingEnd="13dp">
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp">
 
             <TextView
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:gravity="center"
-                android:text="✓"
-                android:textColor="#21E6A1"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-
-            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="end"
-                android:orientation="vertical"
-                android:paddingEnd="10dp">
+                android:gravity="center"
+                android:text="English"
+                android:textColor="#111827"
+                android:textSize="17sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="يعمل دون اتصال"
-                    android:textColor="#21E6A1"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+            <TextView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:gravity="center"
+                android:text="→"
+                android:textColor="#2563EB"
+                android:textSize="25sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:layout_width="wrap_content"
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="العربية"
+                android:textColor="#111827"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- Start Button -->
+        <Button
+            android:id="@+id/startButton"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/bg_button"
+            android:elevation="3dp"
+            android:text="بدء مترجم الشاشة"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <!-- Status -->
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="13dp"
+            android:gravity="center"
+            android:minHeight="30dp"
+            android:text="جاهز للبدء"
+            android:textColor="#6B7280"
+            android:textSize="14sp" />
+
+        <!-- Features Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <!-- Feature 1 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:contentDescription="ترجمة"
+                    android:src="@drawable/ic_translate" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="يتم تنزيل نموذج الترجمة أول مرة فقط."
-                    android:textColor="#8294B2"
-                    android:textSize="10sp" />
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ترجمة فورية"
+                        android:textColor="#111827"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="ترجمة النص الظاهر على الشاشة"
+                        android:textColor="#6B7280"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEF1F5" />
+
+            <!-- Feature 2 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:contentDescription="تحديد"
+                    android:src="@drawable/ic_camera" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="تحديد منطقة النص"
+                        android:textColor="#111827"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="حدد المنطقة التي تريد ترجمتها"
+                        android:textColor="#6B7280"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEF1F5" />
+
+            <!-- Feature 3 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:contentDescription="بدون إنترنت"
+                    android:src="@drawable/ic_image" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="يعمل بدون إنترنت"
+                        android:textColor="#111827"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="بعد تنزيل نموذج الترجمة"
+                        android:textColor="#6B7280"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEF1F5" />
+
+            <!-- Feature 4 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:contentDescription="سرعة"
+                    android:src="@drawable/ic_game" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ترجمة سريعة"
+                        android:textColor="#111827"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="مصمم للترجمة المستمرة"
+                        android:textColor="#6B7280"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
 
             </LinearLayout>
 
         </LinearLayout>
 
+        <!-- Offline Badge -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_card"
+            android:gravity="center"
+            android:orientation="horizontal">
 
-        <!-- PRIVACY -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="●"
+                android:textColor="#16A34A"
+                android:textSize="14sp" />
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="الترجمة المحلية • خصوصية أعلى"
+                android:textColor="#374151"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- Privacy -->
         <TextView
             android:id="@+id/privacyButton"
             android:layout_width="wrap_content"
-            android:layout_height="42dp"
-            android:layout_gravity="center"
-            android:layout_marginTop="9dp"
-            android:clickable="true"
-            android:focusable="true"
+            android:layout_height="48dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
             android:gravity="center"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
             android:text="سياسة الخصوصية"
-            android:textColor="#789EFF"
-            android:textSize="13sp" />
+            android:textColor="#2563EB"
+            android:textSize="14sp" />
 
-
+        <!-- Version -->
         <TextView
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="2dp"
             android:text="الإصدار 1.0"
-            android:textColor="#53647E"
-            android:textSize="10sp" />
+            android:textColor="#9CA3AF"
+            android:textSize="12sp" />
 
     </LinearLayout>
 
