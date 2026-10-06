@@ -1,0 +1,22 @@
+workflows:
+  android-native-signed:
+    name: ScreenTranslator Release
+    max_build_duration: 120
+
+    instance_type: mac_mini_m2
+
+    environment:
+      android_signing:
+        - upload
+
+    scripts:
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+
+      - name: Build Android Release AAB
+        script: |
+          ./gradlew bundleRelease
+
+    artifacts:
+      - app/build/outputs/bundle/release/app-release.aab
